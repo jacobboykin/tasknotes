@@ -693,6 +693,8 @@ ${orderYaml}
 			const completeInstancesProperty = mapPropertyToBasesProperty('completeInstances', plugin);
 			const blockedByProperty = mapPropertyToBasesProperty('blockedBy', plugin);
 			const sortOrderProperty = mapPropertyToBasesProperty('sortOrder', plugin);
+			const planningProperty = mapPropertyToBasesProperty('planningState', plugin);
+			const archiveTag = settings.fieldMapping?.archiveTag || "archived";
 			const dueHasValue = `${dueProperty}.isEmpty() == false`;
 			const scheduledHasValue = `${scheduledProperty}.isEmpty() == false`;
 			const todayDay = getBasesTodayDayExpression();
@@ -746,6 +748,130 @@ ${orderYaml}
       - column: due
         direction: ASC
   - type: tasknotesTaskList
+    name: "Inbox"
+    filters:
+      and:
+        - ${planningProperty} == "inbox"
+        - or:
+          - and:
+            - ${recurrenceProperty}.isEmpty()
+            - ${nonRecurringIncompleteFilter}
+          - and:
+            - ${recurrenceProperty}.isEmpty() == false
+            - ${recurringIncompleteFilter}
+    order:
+${orderYaml}
+    sort:
+      - column: file.ctime
+        direction: ASC
+  - type: tasknotesTaskList
+    name: "Today"
+    filters:
+      and:
+        - ${planningProperty} != "inbox"
+        - ${planningProperty} != "someday"
+        - or:
+          - and:
+            - ${recurrenceProperty}.isEmpty()
+            - ${nonRecurringIncompleteFilter}
+          - and:
+            - ${recurrenceProperty}.isEmpty() == false
+            - ${recurringIncompleteFilter}
+        - or:
+          - and:
+            - ${dueHasValue}
+            - ${dueDay} <= ${todayDay}
+          - and:
+            - ${scheduledHasValue}
+            - ${scheduledDay} <= ${todayDay}
+    order:
+${orderYaml}
+    sort:
+      - column: formula.urgencyScore
+        direction: DESC
+  - type: tasknotesTaskList
+    name: "Upcoming"
+    filters:
+      and:
+        - ${planningProperty} != "inbox"
+        - ${planningProperty} != "someday"
+        - or:
+          - and:
+            - ${recurrenceProperty}.isEmpty()
+            - ${nonRecurringIncompleteFilter}
+          - and:
+            - ${recurrenceProperty}.isEmpty() == false
+            - ${recurringIncompleteFilter}
+        - or:
+          - and:
+            - ${scheduledHasValue}
+            - ${scheduledDay} > ${todayDay}
+          - and:
+            - ${dueHasValue}
+            - ${dueDay} > ${todayDay}
+        - or:
+          - ${dueProperty}.isEmpty()
+          - ${dueDay} > ${todayDay}
+        - or:
+          - ${scheduledProperty}.isEmpty()
+          - ${scheduledDay} > ${todayDay}
+    order:
+${orderYaml}
+    sort:
+      - column: formula.nextDate
+        direction: ASC
+  - type: tasknotesTaskList
+    name: "Anytime"
+    filters:
+      and:
+        - or:
+          - ${planningProperty}.isEmpty()
+          - ${planningProperty} == "anytime"
+        - ${scheduledProperty}.isEmpty()
+        - or:
+          - and:
+            - ${recurrenceProperty}.isEmpty()
+            - ${nonRecurringIncompleteFilter}
+          - and:
+            - ${recurrenceProperty}.isEmpty() == false
+            - ${recurringIncompleteFilter}
+        - or:
+          - ${blockedByProperty}.isEmpty()
+          - 'list(${blockedByProperty}).filter(${blockingTaskIncompleteCondition}).isEmpty()'
+    order:
+${orderYaml}
+    sort:
+      - column: formula.urgencyScore
+        direction: DESC
+  - type: tasknotesTaskList
+    name: "Someday"
+    filters:
+      and:
+        - ${planningProperty} == "someday"
+        - or:
+          - and:
+            - ${recurrenceProperty}.isEmpty()
+            - ${nonRecurringIncompleteFilter}
+          - and:
+            - ${recurrenceProperty}.isEmpty() == false
+            - ${recurringIncompleteFilter}
+    order:
+${orderYaml}
+    sort:
+      - column: file.mtime
+        direction: DESC
+  - type: tasknotesTaskList
+    name: "Logbook"
+    filters:
+      or:
+        - file.hasTag("${archiveTag}")
+${completedStatuses.map(status => `        - ${statusProperty} == "${status}"`).join('\n')}
+    order:
+${orderYaml}
+    sort:
+      - column: file.mtime
+        direction: DESC
+  - type: tasknotesTaskList
     name: "Not Blocked"
     filters:
       and:
@@ -765,33 +891,6 @@ ${orderYaml}
           - ${blockedByProperty}.isEmpty()
           # All blocking tasks are completed (filter returns only incomplete, then check if empty)
           - 'list(${blockedByProperty}).filter(${blockingTaskIncompleteCondition}).isEmpty()'
-    order:
-${orderYaml}
-    sort:
-      - column: formula.urgencyScore
-        direction: DESC
-  - type: tasknotesTaskList
-    name: "Today"
-    filters:
-      and:
-        # Incomplete tasks (handles both recurring and non-recurring)
-        - or:
-          # Non-recurring task that's not in any completed status
-          - and:
-            - ${recurrenceProperty}.isEmpty()
-            - ${nonRecurringIncompleteFilter}
-          # Recurring task where today is not in complete_instances
-          - and:
-            - ${recurrenceProperty}.isEmpty() == false
-            - ${recurringIncompleteFilter}
-        # Due or scheduled today
-        - or:
-          - and:
-            - ${dueHasValue}
-            - ${dueDay} == ${todayDay}
-          - and:
-            - ${scheduledHasValue}
-            - ${scheduledDay} == ${todayDay}
     order:
 ${orderYaml}
     sort:
@@ -941,10 +1040,66 @@ ${agendaOrderYaml}
 		case 'pomodoro-stats-base':
 			return generatePomodoroStatsTemplate(plugin);
 
+		case 'open-entities-view':
+			return `# Projects, Areas & Goals
+
+views:
+  - type: table
+    name: "Projects"
+    filters:
+      and:
+        - note.tasknotesType == "project"
+    order:
+      - file.name
+      - note.status
+      - note.planning
+      - note.areas
+      - note.goals
+      - note.review
+  - type: table
+    name: "Areas"
+    filters:
+      and:
+        - note.tasknotesType == "area"
+    order:
+      - file.name
+      - note.status
+      - note.goals
+      - note.review
+  - type: table
+    name: "Goals"
+    filters:
+      and:
+        - note.tasknotesType == "goal"
+    order:
+      - file.name
+      - note.status
+      - note.due
+      - note.review
+  - type: table
+    name: "Review"
+    filters:
+      and:
+        - list("project", "area", "goal").contains(note.tasknotesType)
+        - note.review.isEmpty() == false
+        - date(note.review).format("YYYY-MM-DD") <= today().format("YYYY-MM-DD")
+    order:
+      - file.name
+      - note.tasknotesType
+      - note.status
+      - note.review
+    sort:
+      - column: note.review
+        direction: ASC
+`;
+
 			case 'relationships': {
 				// Unified relationships widget that shows all relationship types
 				// Extract just the property names (without prefixes) since the template controls the context
 				const projectsProperty = getPropertyName(mapPropertyToBasesProperty('projects', plugin));
+				const areasProperty = getPropertyName(mapPropertyToBasesProperty('areas', plugin));
+				const goalsProperty = getPropertyName(mapPropertyToBasesProperty('goals', plugin));
+				const relationsProperty = getPropertyName(mapPropertyToBasesProperty('relations', plugin));
 				const blockedByProperty = getPropertyName(mapPropertyToBasesProperty('blockedBy', plugin));
 				const recurrenceParentProperty = getPropertyName(mapPropertyToBasesProperty('recurrenceParent', plugin));
 				const occurrenceDateProperty = mapPropertyToBasesProperty('occurrenceDate', plugin);
@@ -1005,6 +1160,33 @@ ${occurrenceOrderYaml}
     filters:
       and:
 ${projectRelationshipFilterPrefix}        - list(this.${projectsProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(file.asLink())
+    order:
+${orderYaml}
+  - type: tasknotesTaskList
+    name: "Areas"
+    filters:
+      and:
+${projectRelationshipFilterPrefix}        - or:
+          - list(this.${areasProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(file.asLink())
+          - list(note.${areasProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(this.file.asLink())
+    order:
+${orderYaml}
+  - type: tasknotesTaskList
+    name: "Goals"
+    filters:
+      and:
+${projectRelationshipFilterPrefix}        - or:
+          - list(this.${goalsProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(file.asLink())
+          - list(note.${goalsProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(this.file.asLink())
+    order:
+${orderYaml}
+  - type: tasknotesTaskList
+    name: "Related"
+    filters:
+      and:
+${projectRelationshipFilterPrefix}        - or:
+          - list(this.${relationsProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(file.asLink())
+          - list(note.${relationsProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(this.file.asLink())
     order:
 ${orderYaml}
   - type: tasknotesTaskList

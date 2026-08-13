@@ -1,4 +1,5 @@
 import type { TaskDependency, TaskInfo } from "../../types";
+import { normalizePlanningState } from "../../core/taskPlanning";
 import { normalizeDependencyEntry, serializeDependencies } from "../../utils/dependencyUtils";
 import { assertValidFrontmatterFieldName } from "./taskPropertyFrontmatterField";
 
@@ -46,6 +47,10 @@ export function normalizeTaskPropertyValue(
 		return normalizeBlockedByValue(value);
 	}
 
+	if (property === "planningState") {
+		return normalizePlanningState(value);
+	}
+
 	return value;
 }
 
@@ -74,6 +79,10 @@ export function buildTaskPropertyUpdatePlan({
 	const normalizedValue = normalizeTaskPropertyValue(property, value, normalizeStatusValue);
 	const updatedTask = { ...freshTask } as Record<string, unknown>;
 	updatedTask[property] = normalizedValue;
+	if (property === "scheduled") updatedTask.planningState = "anytime";
+	if (property === "planningState") {
+		updatedTask.scheduled = undefined;
+	}
 	updatedTask.dateModified = currentTimestamp;
 
 	if (property === "status" && !freshTask.recurrence) {
@@ -159,6 +168,10 @@ export function applyTaskPropertyFrontmatterChange({
 		);
 	} else if ((property === "due" || property === "scheduled") && !rawValue) {
 		delete frontmatter[resolvedFieldName];
+		if (property === "scheduled") frontmatter.planning = "anytime";
+	} else if (property === "scheduled") {
+		frontmatter[resolvedFieldName] = normalizedValue;
+		frontmatter.planning = "anytime";
 	} else if (property === "blockedBy") {
 		const dependencies = Array.isArray(normalizedValue)
 			? (normalizedValue as TaskDependency[])

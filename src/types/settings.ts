@@ -231,6 +231,7 @@ export interface TaskNotesSettings {
 		"open-tasks-view": string;
 		"open-advanced-calendar-view": string;
 		"open-agenda-view": string;
+		"open-entities-view": string;
 		"pomodoro-stats-base": string;
 		relationships: string; // Bases file for unified relationships widget
 		[key: string]: string; // Allow string indexing
@@ -277,6 +278,7 @@ export type DefaultTaskTime = "none" | `${number}${number}:${number}${number}`;
 
 export interface TaskCreationDefaults {
 	// Pre-fill options
+	defaultPlanningState?: import("../types").PlanningState;
 	defaultContexts: string; // Comma-separated list
 	defaultTags: string; // Comma-separated list
 	defaultProjects: string; // Comma-separated list of project links

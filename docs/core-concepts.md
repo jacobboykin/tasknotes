@@ -19,10 +19,19 @@ status: in-progress
 priority: high
 due: 2025-01-15
 scheduled: 2025-01-14
+planning: anytime
 contexts:
   - office
 projects:
   - "[[Q1 Planning]]"
+areas:
+  - "[[Work]]"
+goals:
+  - "[[Launch Q1]]"
+relations:
+  - "[[Quarterly brief]]"
+projectSection: Research
+review: 2025-01-17
 ---
 
 ## Notes
@@ -50,6 +59,12 @@ Since tasks are proper notes, they work with Obsidian's core features:
 
 This approach creates many small files. TaskNotes stores tasks in a configurable folder (default: `TaskNotes/Tasks/`) to keep them organized.
 In practice, this lets TaskNotes fit into existing vault habits instead of replacing them. You keep using normal note workflows, and TaskNotes adds structure, filtering, and commands on top.
+
+## Planning and Organization
+
+The `planning` property controls whether a task belongs in Inbox, Anytime, or Someday. Scheduling a task places it in Today or Upcoming; completing or archiving it places it in Logbook. The default Task List Base includes all six views, and the task menu's **When** action moves tasks between them.
+
+Projects, areas, and goals are normal notes with `tasknotesType: project`, `area`, or `goal`. Create them from the command palette, browse them in **Open projects, areas & goals**, and assign them from searchable task-modal pickers. Tasks can also carry `projectSection`, `relations`, and `review` metadata. Their relationship widget shows linked projects, areas, goals, related notes, subtasks, and dependencies in both directions.
 
 ## YAML Frontmatter
 

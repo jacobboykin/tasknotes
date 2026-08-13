@@ -105,6 +105,7 @@ export const DEFAULT_PRIORITIES: PriorityConfig[] = [
 ];
 
 export const DEFAULT_TASK_CREATION_DEFAULTS: TaskCreationDefaults = {
+	defaultPlanningState: "anytime",
 	defaultContexts: "",
 	defaultTags: "",
 	defaultProjects: "",
@@ -391,6 +392,7 @@ export const DEFAULT_SETTINGS: TaskNotesSettings = {
 		"open-tasks-view": "TaskNotes/Views/tasks-default.base",
 		"open-advanced-calendar-view": "TaskNotes/Views/calendar-default.base",
 		"open-agenda-view": "TaskNotes/Views/agenda-default.base",
+		"open-entities-view": "TaskNotes/Views/entities-default.base",
 		"pomodoro-stats-base": "TaskNotes/Views/pomodoro-stats.base",
 		relationships: "TaskNotes/Views/relationships.base",
 	},

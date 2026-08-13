@@ -68,6 +68,19 @@ function createFieldMapper(): TaskUpdateFieldMapper {
 }
 
 describe("taskUpdatePlanning", () => {
+	it("keeps scheduled dates mutually exclusive with inbox and someday", () => {
+		expect(normalizeTaskUpdateInput({ scheduled: "2026-08-13" })).toEqual({
+			scheduled: "2026-08-13",
+			planningState: "anytime",
+		});
+		expect(
+			normalizeTaskUpdateInput({ planningState: "someday", scheduled: "2026-08-13" })
+		).toEqual({ planningState: "anytime", scheduled: "2026-08-13" });
+		expect(normalizeTaskUpdateInput({ planningState: "anytime" })).toEqual({
+			planningState: "anytime",
+			scheduled: undefined,
+		});
+	});
 	it("sanitizes time entries without mutating the caller's update object", () => {
 		const updates = {
 			timeEntries: [

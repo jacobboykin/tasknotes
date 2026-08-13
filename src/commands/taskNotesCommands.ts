@@ -3,6 +3,9 @@ import type TaskNotesPlugin from "../main";
 import type { TranslatedCommandDefinition } from "./types";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 import { showConfirmationModal } from "../modals/ConfirmationModal";
+import { TaskEntityCreationModal } from "../modals/TaskEntityCreationModal";
+import { TaskNotesQuickFindModal } from "../modals/TaskNotesQuickFindModal";
+import { calculateDefaultDate } from "../utils/helpers";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Commands/TaskNotesCommands" });
 
@@ -29,6 +32,27 @@ export function createTaskNotesCommandDefinitions(
 			nameKey: "commands.openTasksView",
 			callback: async (ctx) => {
 				await ctx.openBasesFileForCommand("open-tasks-view");
+			},
+		},
+		{
+			id: "open-planning-view",
+			nameKey: "commands.openPlanningView",
+			callback: async (ctx) => {
+				await ctx.openBasesFileForCommand("open-tasks-view");
+			},
+		},
+		{
+			id: "open-entities-view",
+			nameKey: "commands.openEntitiesView",
+			callback: async (ctx) => {
+				await ctx.openBasesFileForCommand("open-entities-view");
+			},
+		},
+		{
+			id: "quick-find",
+			nameKey: "commands.quickFind",
+			callback: async (ctx) => {
+				await TaskNotesQuickFindModal.open(ctx);
 			},
 		},
 		{
@@ -97,6 +121,29 @@ export function createTaskNotesCommandDefinitions(
 				ctx.openTaskCreationModal();
 			},
 		},
+		{
+			id: "capture-inbox",
+			nameKey: "commands.captureInbox",
+			callback: (ctx) => ctx.openTaskCreationModal({ planningState: "inbox", scheduled: "" }),
+		},
+		{
+			id: "capture-today",
+			nameKey: "commands.captureToday",
+			callback: (ctx) =>
+				ctx.openTaskCreationModal({
+					planningState: "anytime",
+					scheduled: calculateDefaultDate("today"),
+				}),
+		},
+		...(["project", "area", "goal"] as const).map((type) => ({
+			id: `create-${type}`,
+			nameKey: `commands.create${type[0].toUpperCase()}${type.slice(1)}` as
+				| "commands.createProject"
+				| "commands.createArea"
+				| "commands.createGoal",
+			callback: (ctx: TaskNotesPlugin) =>
+				new TaskEntityCreationModal(ctx.app, ctx, type).open(),
+		})),
 		{
 			id: "convert-current-note-to-task",
 			nameKey: "commands.convertCurrentNoteToTask.name",

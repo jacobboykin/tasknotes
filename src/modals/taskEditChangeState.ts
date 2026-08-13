@@ -1,5 +1,5 @@
 import { App, TFile } from "obsidian";
-import type { Reminder, TaskDependency, TaskInfo } from "../types";
+import type { PlanningState, Reminder, TaskDependency, TaskInfo } from "../types";
 import type { HideIdentifyingTagsMode, UserMappedField } from "../types/settings";
 import {
 	buildTaskEditChanges,
@@ -25,10 +25,16 @@ export interface TaskEditModalChangeState {
 	title: string;
 	dueDate: string;
 	scheduledDate: string;
+	planningState?: PlanningState;
 	priority: string;
 	status: string;
 	contexts: string;
+	areas?: string;
+	goals?: string;
+	relations?: string;
 	projects: string;
+	projectSection?: string;
+	reviewDate?: string;
 	tags: string;
 	initialTags: string;
 	timeEstimate: number;
@@ -77,10 +83,16 @@ export function buildTaskEditChangesFromModalState(
 		title: input.title,
 		dueDate: input.dueDate,
 		scheduledDate: input.scheduledDate,
+		planningState: input.planningState,
 		priority: input.priority,
 		status: input.status,
 		contexts: input.contexts,
+		areas: input.areas,
+		goals: input.goals,
+		relations: input.relations,
 		projects: input.projects,
+		projectSection: input.projectSection,
+		reviewDate: input.reviewDate,
 		tags: input.tags,
 		initialTags: input.initialTags,
 		timeEstimate: input.timeEstimate,

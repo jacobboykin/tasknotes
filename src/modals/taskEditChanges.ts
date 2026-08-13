@@ -1,4 +1,5 @@
-import { Reminder, TaskDependency, TaskInfo } from "../types";
+import { PlanningState, Reminder, TaskDependency, TaskInfo } from "../types";
+import { getPlanningStateUpdate, getScheduledPlanningUpdate } from "../core/taskPlanning";
 import { HideIdentifyingTagsMode, UserMappedField } from "../types/settings";
 import { getCurrentTimestamp } from "../utils/dateUtils";
 import { updateToNextScheduledOccurrence, sanitizeTags, updateDTSTARTInRecurrenceRule } from "../utils/helpers";
@@ -23,10 +24,16 @@ export interface TaskEditChangeInput {
 	title: string;
 	dueDate: string;
 	scheduledDate: string;
+	planningState?: PlanningState;
 	priority: string;
 	status: string;
 	contexts: string;
+	areas?: string;
+	goals?: string;
+	relations?: string;
 	projects: string;
+	projectSection?: string;
+	reviewDate?: string;
 	tags: string;
 	initialTags: string;
 	timeEstimate: number;
@@ -95,7 +102,12 @@ export function buildTaskEditChanges(input: TaskEditChangeInput): TaskEditChange
 	}
 
 	if (input.scheduledDate !== (input.task.scheduled || "")) {
-		changes.scheduled = input.scheduledDate || undefined;
+		Object.assign(changes, getScheduledPlanningUpdate(input.scheduledDate || undefined));
+	}
+
+	const planningState = input.planningState ?? input.task.planningState ?? "anytime";
+	if (planningState !== (input.task.planningState ?? "anytime")) {
+		Object.assign(changes, getPlanningStateUpdate(planningState));
 	}
 
 	if (input.priority !== input.task.priority) {
@@ -116,6 +128,15 @@ export function buildTaskEditChanges(input: TaskEditChangeInput): TaskEditChange
 		changes.contexts = newContexts.length > 0 ? newContexts : undefined;
 	}
 
+	for (const property of ["areas", "goals", "relations"] as const) {
+		const next = splitListPreservingLinksAndQuotes(input[property] || "")
+			.map((value) => value.trim())
+			.filter(Boolean);
+		if (JSON.stringify(next.sort()) !== JSON.stringify(toTaskStringList(input.task[property]).sort())) {
+			changes[property] = next;
+		}
+	}
+
 	const newProjects = splitListPreservingLinksAndQuotes(input.projects);
 	const oldProjects = toTaskStringList(input.task.projects);
 	const normalizedNewProjects = normalizeProjectList(newProjects).sort();
@@ -125,6 +146,13 @@ export function buildTaskEditChanges(input: TaskEditChangeInput): TaskEditChange
 		JSON.stringify(normalizedNewProjects) !== JSON.stringify(normalizedOldProjects)
 	) {
 		changes.projects = newProjects.length > 0 ? newProjects : [];
+	}
+
+	if ((input.projectSection || "") !== (input.task.projectSection || "")) {
+		changes.projectSection = input.projectSection || undefined;
+	}
+	if ((input.reviewDate || "") !== (input.task.reviewDate || "")) {
+		changes.reviewDate = input.reviewDate || undefined;
 	}
 
 	const tagsUnchanged = sanitizeTags(input.tags) === sanitizeTags(input.initialTags);

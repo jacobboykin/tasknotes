@@ -68,6 +68,24 @@ describe("defaultBasesFiles", () => {
 		expect(template).toContain("sort:\n      - column: formula.urgencyScore\n        direction: DESC");
 	});
 
+	it("adds native Things-style planning views", () => {
+		const template = generateBasesFileTemplate("open-tasks-view", createMockPlugin() as any);
+
+		for (const name of ["Inbox", "Today", "Upcoming", "Anytime", "Someday", "Logbook"]) {
+			expect(template).toContain(`name: "${name}"`);
+		}
+		expect(template).toContain('planningState == "inbox"');
+		expect(template).toContain('planningState == "someday"');
+		expect(template).toContain('planningState == "anytime"');
+		expect(template).toContain(
+			'date(scheduled).format("YYYY-MM-DD") <= today().format("YYYY-MM-DD")'
+		);
+		expect(template).toContain(
+			'date(due).format("YYYY-MM-DD") <= today().format("YYYY-MM-DD")'
+		);
+		expect(template).toContain('file.hasTag("archived")');
+	});
+
 	it("adds manual-order sorting to relationship views that render tasks", () => {
 		const template = generateBasesFileTemplate("relationships", createMockPlugin() as any);
 
@@ -78,6 +96,26 @@ describe("defaultBasesFiles", () => {
 		expect((template.match(/column: tasknotes_manual_order/g) ?? []).length).toBe(3);
 		expect((template.match(/property: status/g) ?? []).length).toBe(2);
 		expect(template).toContain('name: "Projects"');
+		for (const name of ["Areas", "Goals", "Related"]) {
+			expect(template).toContain(`name: "${name}"`);
+		}
+	});
+
+	it("creates a first-class project, area, goal, and review workspace", () => {
+		const template = generateBasesFileTemplate("open-entities-view", createMockPlugin() as any);
+
+		for (const [name, type] of [
+			["Projects", "project"],
+			["Areas", "area"],
+			["Goals", "goal"],
+		] as const) {
+			expect(template).toContain(`name: "${name}"`);
+			expect(template).toContain(`note.tasknotesType == "${type}"`);
+		}
+		expect(template).toContain('name: "Review"');
+		expect(template).toContain(
+			'date(note.review).format("YYYY-MM-DD") <= today().format("YYYY-MM-DD")'
+		);
 	});
 
 	it("adds materialized occurrence notes to the relationships template", () => {
@@ -293,7 +331,7 @@ describe("defaultBasesFiles", () => {
 				"        - file.hasLink(this.file)",
 			].join("\n")
 		);
-		expect((template.match(/file\.inFolder\("Templates"\) != true/g) ?? []).length).toBe(5);
+		expect((template.match(/file\.inFolder\("Templates"\) != true/g) ?? []).length).toBe(8);
 	});
 
 	it("uses formatted day strings in view filters and formulas that compare against today()", () => {
@@ -305,7 +343,7 @@ describe("defaultBasesFiles", () => {
 		// Today and This Week view filters
 		expect(template).toContain('date(due).format("YYYY-MM-DD") == today().format("YYYY-MM-DD")');
 		expect(template).toContain(
-			'date(scheduled).format("YYYY-MM-DD") == today().format("YYYY-MM-DD")'
+			'date(scheduled).format("YYYY-MM-DD") <= today().format("YYYY-MM-DD")'
 		);
 		expect(template).toContain('date(due).format("YYYY-MM-DD") >= today().format("YYYY-MM-DD")');
 		expect(template).toContain(

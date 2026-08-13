@@ -598,9 +598,15 @@ export class TaskCreationModal extends TaskModal {
 		this.title = formState.title;
 		this.dueDate = formState.dueDate;
 		this.scheduledDate = formState.scheduledDate;
+		this.planningState = formState.planningState;
 		this.priority = formState.priority;
 		this.status = formState.status;
 		this.contexts = formState.contexts;
+		this.areas = formState.areas;
+		this.goals = formState.goals;
+		this.relations = formState.relations;
+		this.projectSection = formState.projectSection;
+		this.reviewDate = formState.reviewDate;
 		this.tags = formState.tags;
 		this.timeEstimate = formState.timeEstimate;
 		this.recurrenceRule = formState.recurrenceRule;
@@ -744,10 +750,16 @@ export class TaskCreationModal extends TaskModal {
 			title: this.title,
 			dueDate: this.dueDate,
 			scheduledDate: this.scheduledDate,
+			planningState: this.planningState,
 			priority: this.priority,
 			status: this.status,
 			contexts: this.contexts,
+			areas: this.areas,
+			goals: this.goals,
+			relations: this.relations,
 			projects: this.projects,
+			projectSection: this.projectSection,
+			reviewDate: this.reviewDate,
 			tags: this.tags,
 			timeEstimate: this.timeEstimate,
 			recurrenceRule: this.recurrenceRule,

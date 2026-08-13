@@ -200,6 +200,12 @@ export class TaskContextMenu {
 
 		this.menu.addSeparator();
 
+		this.menu.addItem((item) => {
+			item.setTitle(this.t("contextMenus.task.planning.title"));
+			item.setIcon("inbox");
+			this.addPlanningOptions(getSubmenu(item), task, plugin);
+		});
+
 		// Due Date submenu
 		this.menu.addItem((item) => {
 			item.setTitle(this.t("contextMenus.task.dueDate"));
@@ -839,6 +845,49 @@ export class TaskContextMenu {
 		window.setTimeout(() => {
 			this.updateMainMenuIconColors(task, plugin);
 		}, 10);
+	}
+
+	private addPlanningOptions(submenu: Menu, task: TaskInfo, plugin: TaskNotesPlugin): void {
+		const today = formatDateForStorage(new Date());
+		const scheduledDay = task.scheduled?.slice(0, 10);
+		const current =
+			task.planningState === "inbox" || task.planningState === "someday"
+				? task.planningState
+				: scheduledDay && scheduledDay <= today
+					? "today"
+					: "anytime";
+		const options = [
+			{ value: "inbox", icon: "inbox" },
+			{ value: "today", icon: "star" },
+			{ value: "anytime", icon: "layers" },
+			{ value: "someday", icon: "archive" },
+		] as const;
+
+		for (const option of options) {
+			submenu.addItem((item) => {
+				item
+					.setTitle(this.t(`contextMenus.task.planning.${option.value}`))
+					.setIcon(option.icon)
+					.setChecked(current === option.value)
+					.onClick(async () => {
+						try {
+							if (option.value === "today") {
+								await plugin.updateTaskProperty(task, "scheduled", today);
+							} else {
+								await plugin.updateTaskProperty(task, "planningState", option.value);
+							}
+							this.options.onUpdate?.();
+						} catch (error) {
+							tasknotesLogger.error("Failed to update task planning state", {
+								category: "persistence",
+								operation: "update-task-planning-state",
+								error,
+							});
+							new Notice(this.t("contextMenus.task.notices.updatePlanningFailure"));
+						}
+					});
+			});
+		}
 	}
 
 	private addMobileDismissOption(): void {

@@ -16,6 +16,12 @@ const TASK_PROPERTY_FIELD_MAPPING_ALIASES: Partial<Record<keyof TaskInfo, FieldM
 	occurrence_template: "occurrenceTemplate",
 	occurrence_past_horizon: "occurrencePastHorizon",
 	occurrence_future_horizon: "occurrenceFutureHorizon",
+	planningState: "planningState",
+	areas: "areas",
+	goals: "goals",
+	relations: "relations",
+	projectSection: "projectSection",
+	reviewDate: "reviewDate",
 };
 
 function isFieldMappingKey(property: PropertyKey, mapping: FieldMapping): property is FieldMappingKey {
@@ -42,7 +48,6 @@ export function resolveTaskPropertyFrontmatterField(
 	property: keyof TaskInfo
 ): string {
 	const mapping = fieldMapper.getMapping();
-
 	if (isFieldMappingKey(property, mapping)) {
 		return assertValidFrontmatterFieldName(
 			fieldMapper.toUserField(property),

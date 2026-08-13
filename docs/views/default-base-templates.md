@@ -25,6 +25,10 @@ The examples below assume:
 
 When task identification uses a property instead of a tag, generated filters reference the identifying note property with bracket notation and list-tolerant matching, such as `list(note["Task Type"]).contains(true)`. This keeps filters valid when custom property names contain spaces or other characters that cannot be used with dot notation, and matches tasks whose identifying property is stored as either a scalar value or a list containing that value.
 
+## Planning and organization defaults
+
+The tasks Base includes Inbox, Today, Upcoming, Anytime, Someday, and Logbook views. The entities Base provides Projects, Areas, Goals, and Review tables, while the relationships Base resolves project, area, goal, and general relations in both directions. These templates use the configured field mappings; run **TaskNotes: Update default base files** to add them to an existing vault.
+
 ## Included formulas
 
 All templates include the following calculated formula properties that you can use in views, filters, and sorting.

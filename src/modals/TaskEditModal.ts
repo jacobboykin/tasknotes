@@ -87,9 +87,15 @@ export class TaskEditModal extends TaskModal {
 		this.title = formState.title;
 		this.dueDate = formState.dueDate;
 		this.scheduledDate = formState.scheduledDate;
+		this.planningState = formState.planningState;
 		this.priority = formState.priority;
 		this.status = formState.status;
 		this.contexts = formState.contexts;
+		this.areas = formState.areas;
+		this.goals = formState.goals;
+		this.relations = formState.relations;
+		this.projectSection = formState.projectSection;
+		this.reviewDate = formState.reviewDate;
 
 		// Initialize projects using the new method that handles both old and new formats
 		if (formState.hasValidProjects) {
@@ -545,10 +551,16 @@ export class TaskEditModal extends TaskModal {
 			title: this.title,
 			dueDate: this.dueDate,
 			scheduledDate: this.scheduledDate,
+			planningState: this.planningState,
 			priority: this.priority,
 			status: this.status,
 			contexts: this.contexts,
+			areas: this.areas,
+			goals: this.goals,
+			relations: this.relations,
 			projects: this.projects,
+			projectSection: this.projectSection,
+			reviewDate: this.reviewDate,
 			tags: this.tags,
 			initialTags: this.initialTags,
 			timeEstimate: this.timeEstimate,

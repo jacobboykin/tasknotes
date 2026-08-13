@@ -1625,3 +1625,77 @@ body.is-mobile .tasknotes-plugin .task-project-item--task-card .task-project-rem
     color: var(--text-muted);
     margin-top: 2px;
 }
+.tasknotes-plugin .tn-chip-input {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--size-2-2);
+	padding: var(--size-2-2);
+	border: var(--input-border-width) solid var(--background-modifier-border);
+	border-radius: var(--input-radius);
+	background: var(--background-modifier-form-field);
+}
+
+.tasknotes-plugin .tn-chip-input:focus-within {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--interactive-accent) 25%, transparent);
+}
+
+.tasknotes-plugin .tn-chip-input__chips {
+	display: flex;
+	max-width: 100%;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--size-2-2);
+}
+
+.tasknotes-plugin .tn-chip-input__chip {
+	display: inline-flex;
+	max-width: 100%;
+	align-items: center;
+	gap: var(--size-2-1);
+	padding-inline-start: var(--size-2-2);
+	border-radius: var(--radius-s);
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.tasknotes-plugin .tn-chip-input__label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.tasknotes-plugin .tn-chip-input__remove {
+	display: inline-flex;
+	width: 1.75rem;
+	height: 1.75rem;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+}
+
+.tasknotes-plugin .tn-chip-input__remove:hover,
+.tasknotes-plugin .tn-chip-input__remove:focus-visible {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.tasknotes-plugin .tn-chip-input__input {
+	min-width: 8rem;
+	flex: 1;
+	padding: var(--size-2-1);
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.tasknotes-plugin .tn-chip-input__input:focus {
+	box-shadow: none;
+}

@@ -451,6 +451,8 @@ export interface TaskDependency {
 	gap?: string; // Optional ISO 8601 duration offset between tasks
 }
 
+export type PlanningState = "inbox" | "anytime" | "someday";
+
 export interface TaskInfo {
 	id?: string; // Task identifier (typically same as path for API consistency)
 	title: string;
@@ -463,6 +465,12 @@ export interface TaskInfo {
 	tags?: string[];
 	contexts?: string[];
 	projects?: string[];
+	planningState?: PlanningState;
+	areas?: string[];
+	goals?: string[];
+	relations?: string[];
+	projectSection?: string;
+	reviewDate?: string;
 	attachments?: string[]; // Ordered links to files that belong to this task
 	recurrence?: string; // RFC 5545 recurrence rule string
 	recurrence_anchor?: 'scheduled' | 'completion'; // Determines if recurrence is from scheduled date (fixed) or completion date (flexible). Defaults to 'scheduled'
@@ -730,6 +738,12 @@ export interface FieldMapping {
 	googleCalendarMovedOriginalDates: string; // Historical moved recurring dates excluded from the master event
 	reminders: string; // For task reminders
 	sortOrder: string; // Numeric ordering within column (lower = higher)
+	planningState: string;
+	areas: string;
+	goals: string;
+	relations: string;
+	projectSection: string;
+	reviewDate: string;
 }
 
 export interface StatusConfig {

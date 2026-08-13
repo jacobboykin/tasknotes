@@ -214,6 +214,12 @@ export class TaskCreationService {
 				scheduled: taskData.scheduled || undefined,
 				contexts: contextsArray.length > 0 ? contextsArray : undefined,
 				projects: projectsArray.length > 0 ? projectsArray : undefined,
+				planningState: taskData.planningState,
+				areas: taskData.areas,
+				goals: taskData.goals,
+				relations: taskData.relations,
+				projectSection: taskData.projectSection,
+				reviewDate: taskData.reviewDate,
 				timeEstimate:
 					taskData.timeEstimate && taskData.timeEstimate > 0
 						? taskData.timeEstimate

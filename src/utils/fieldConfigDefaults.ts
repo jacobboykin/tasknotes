@@ -77,13 +77,23 @@ export const DEFAULT_CORE_FIELDS: ModalFieldConfig[] = [
 
 	// Metadata group
 	{
+		id: "planning",
+		fieldType: "core",
+		group: "metadata",
+		displayName: "When",
+		visibleInCreation: true,
+		visibleInEdit: true,
+		order: 0,
+		enabled: true,
+	},
+	{
 		id: "contexts",
 		fieldType: "core",
 		group: "metadata",
 		displayName: "Contexts",
 		visibleInCreation: true,
 		visibleInEdit: true,
-		order: 0,
+		order: 1,
 		enabled: true,
 	},
 	{
@@ -93,7 +103,7 @@ export const DEFAULT_CORE_FIELDS: ModalFieldConfig[] = [
 		displayName: "Tags",
 		visibleInCreation: true,
 		visibleInEdit: true,
-		order: 1,
+		order: 2,
 		enabled: true,
 	},
 	{
@@ -103,7 +113,7 @@ export const DEFAULT_CORE_FIELDS: ModalFieldConfig[] = [
 		displayName: "Time Estimate",
 		visibleInCreation: true,
 		visibleInEdit: true,
-		order: 2,
+		order: 3,
 		enabled: true,
 	},
 
@@ -125,7 +135,57 @@ export const DEFAULT_CORE_FIELDS: ModalFieldConfig[] = [
 		displayName: "Subtasks",
 		visibleInCreation: true,
 		visibleInEdit: true,
+		order: 5,
+		enabled: true,
+	},
+	{
+		id: "areas",
+		fieldType: "organization",
+		group: "organization",
+		displayName: "Areas",
+		visibleInCreation: true,
+		visibleInEdit: true,
 		order: 1,
+		enabled: true,
+	},
+	{
+		id: "goals",
+		fieldType: "organization",
+		group: "organization",
+		displayName: "Goals",
+		visibleInCreation: true,
+		visibleInEdit: true,
+		order: 2,
+		enabled: true,
+	},
+	{
+		id: "project-section",
+		fieldType: "organization",
+		group: "organization",
+		displayName: "Project section",
+		visibleInCreation: true,
+		visibleInEdit: true,
+		order: 3,
+		enabled: true,
+	},
+	{
+		id: "relations",
+		fieldType: "organization",
+		group: "organization",
+		displayName: "Related notes",
+		visibleInCreation: true,
+		visibleInEdit: true,
+		order: 4,
+		enabled: true,
+	},
+	{
+		id: "review-date",
+		fieldType: "organization",
+		group: "organization",
+		displayName: "Review date",
+		visibleInCreation: true,
+		visibleInEdit: true,
+		order: 6,
 		enabled: true,
 	},
 
@@ -157,7 +217,7 @@ export const DEFAULT_CORE_FIELDS: ModalFieldConfig[] = [
  */
 export function createDefaultFieldConfig(): TaskModalFieldsConfig {
 	return {
-		version: 1,
+		version: 2,
 		fields: [...DEFAULT_CORE_FIELDS],
 		groups: [...DEFAULT_FIELD_GROUPS],
 	};
@@ -235,9 +295,13 @@ export function initializeFieldConfig(
 	existingConfig?: TaskModalFieldsConfig,
 	userFields?: UserMappedField[]
 ): TaskModalFieldsConfig {
-	// If we have an existing config, return it
+	// Add newly introduced native fields without disturbing the user's ordering.
 	if (existingConfig) {
-		return existingConfig;
+		const fields = [...existingConfig.fields];
+		for (const field of DEFAULT_CORE_FIELDS) {
+			if (!fields.some((candidate) => candidate.id === field.id)) fields.push({ ...field });
+		}
+		return { ...existingConfig, version: 2, fields };
 	}
 
 	// Create default config

@@ -1,13 +1,12 @@
 import { FieldMapping, PriorityConfig, StatusConfig, TaskInfo } from "../types";
 import type { UserMappedField } from "../types/settings";
+import { normalizePlanningState } from "./taskPlanning";
+import { DEFAULT_FIELD_MAPPING } from "./defaultFieldMapping";
 import {
-	isPropertyForField,
 	isRecognizedProperty,
 	lookupMappingKey,
 	mapTaskFromFrontmatter,
 	mapTaskToFrontmatter,
-	toUserField,
-	toUserFields,
 	validateFieldMapping,
 } from "./fieldMapping";
 
@@ -15,12 +14,16 @@ import {
  * Service for mapping between internal field names and user-configured property names
  */
 export class FieldMapper {
+	private mapping: FieldMapping;
+
 	constructor(
-		private mapping: FieldMapping,
+		mapping: FieldMapping,
 		private userFields: UserMappedField[] = [],
 		private statuses: readonly StatusConfig[] = [],
 		private priorities: readonly PriorityConfig[] = []
-	) {}
+	) {
+		this.mapping = { ...DEFAULT_FIELD_MAPPING, ...mapping };
+	}
 
 	/**
 	 * Update user-defined field definitions (call when settings change)
@@ -52,7 +55,7 @@ export class FieldMapper {
 	 * Convert internal field name to user's property name
 	 */
 	toUserField(internalName: keyof FieldMapping): string {
-		return toUserField(this.mapping, internalName);
+		return this.mapping[internalName];
 	}
 
 	/**
@@ -69,7 +72,7 @@ export class FieldMapper {
 			frontmatter !== null && typeof frontmatter === "object" && !Array.isArray(frontmatter)
 				? (frontmatter as Record<string, unknown>)
 				: undefined;
-		return mapTaskFromFrontmatter(
+		const mapped = mapTaskFromFrontmatter(
 			this.mapping,
 			frontmatterRecord,
 			filePath,
@@ -77,7 +80,18 @@ export class FieldMapper {
 			this.userFields,
 			this.statuses,
 			this.priorities
-		);
+		) as Partial<TaskInfo>;
+
+		if (!frontmatterRecord) return mapped;
+		if (frontmatterRecord[this.mapping.planningState] !== undefined) {
+			mapped.planningState = normalizePlanningState(frontmatterRecord[this.mapping.planningState]);
+		}
+		mapped.areas = normalizeStringList(frontmatterRecord[this.mapping.areas]);
+		mapped.goals = normalizeStringList(frontmatterRecord[this.mapping.goals]);
+		mapped.relations = normalizeStringList(frontmatterRecord[this.mapping.relations]);
+		mapped.projectSection = normalizeOptionalString(frontmatterRecord[this.mapping.projectSection]);
+		mapped.reviewDate = normalizeOptionalString(frontmatterRecord[this.mapping.reviewDate]);
+		return mapped;
 	}
 
 	/**
@@ -90,14 +104,27 @@ export class FieldMapper {
 		taskTag?: string,
 		storeTitleInFilename?: boolean
 	): Record<string, unknown> {
-		return mapTaskToFrontmatter(this.mapping, taskData, taskTag, storeTitleInFilename, this.userFields);
+		const frontmatter = mapTaskToFrontmatter(
+			this.mapping,
+			taskData,
+			taskTag,
+			storeTitleInFilename,
+			this.userFields
+		);
+		if (taskData.planningState !== undefined) frontmatter[this.mapping.planningState] = taskData.planningState;
+		if (taskData.areas?.length) frontmatter[this.mapping.areas] = taskData.areas;
+		if (taskData.goals?.length) frontmatter[this.mapping.goals] = taskData.goals;
+		if (taskData.relations?.length) frontmatter[this.mapping.relations] = taskData.relations;
+		if (taskData.projectSection) frontmatter[this.mapping.projectSection] = taskData.projectSection;
+		if (taskData.reviewDate) frontmatter[this.mapping.reviewDate] = taskData.reviewDate;
+		return frontmatter;
 	}
 
 	/**
 	 * Update mapping configuration
 	 */
 	updateMapping(newMapping: FieldMapping): void {
-		this.mapping = newMapping;
+		this.mapping = { ...DEFAULT_FIELD_MAPPING, ...newMapping };
 	}
 
 	/**
@@ -156,7 +183,7 @@ export class FieldMapper {
 	 * isPropertyForField("status", "status")      // true
 	 */
 	isPropertyForField(propertyName: string, internalField: keyof FieldMapping): boolean {
-		return isPropertyForField(this.mapping, propertyName, internalField);
+		return propertyName === this.mapping[internalField];
 	}
 
 	/**
@@ -171,7 +198,7 @@ export class FieldMapper {
 	 * // Returns: ["task-status", "deadline", "priority"]
 	 */
 	toUserFields(internalFields: (keyof FieldMapping)[]): string[] {
-		return toUserFields(this.mapping, internalFields);
+		return internalFields.map((field) => this.mapping[field]);
 	}
 
 	/**
@@ -189,4 +216,18 @@ export class FieldMapper {
 	static validateMapping(mapping: FieldMapping): { valid: boolean; errors: string[] } {
 		return validateFieldMapping(mapping);
 	}
+}
+
+function normalizeOptionalString(value: unknown): string | undefined {
+	if (typeof value === "string" && value.trim()) return value.trim();
+	if (typeof value === "number" || typeof value === "boolean") return String(value);
+	return undefined;
+}
+
+function normalizeStringList(value: unknown): string[] | undefined {
+	const values = Array.isArray(value) ? value : value === undefined || value === null ? [] : [value];
+	const normalized = values
+		.map(normalizeOptionalString)
+		.filter((item): item is string => item !== undefined);
+	return normalized.length ? normalized : undefined;
 }

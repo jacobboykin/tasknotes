@@ -96,6 +96,9 @@ export function isProjectNoteByAutosuggestMarkers(
 	plugin: TaskNotesPlugin,
 	metadata: ProjectMarkerMetadata | null | undefined
 ): boolean {
+	if (["project", "area", "goal"].includes(String(metadata?.frontmatter?.tasknotesType))) {
+		return true;
+	}
 	const projectAutosuggest = plugin.settings.projectAutosuggest;
 	if (!projectAutosuggest) {
 		return false;

@@ -1,4 +1,4 @@
-import type { Reminder, TaskInfo } from "../types";
+import type { PlanningState, Reminder, TaskInfo } from "../types";
 import type { HideIdentifyingTagsMode, UserMappedField } from "../types/settings";
 import { sanitizeTags } from "../utils/helpers";
 import {
@@ -36,10 +36,16 @@ export interface TaskEditFormState {
 	title: string;
 	dueDate: string;
 	scheduledDate: string;
+	planningState: PlanningState;
 	priority: string;
 	status: string;
 	contexts: string;
+	areas: string;
+	goals: string;
+	relations: string;
 	projectValues: string[];
+	projectSection: string;
+	reviewDate: string;
 	hasValidProjects: boolean;
 	tags: string;
 	initialTags: string;
@@ -94,10 +100,16 @@ export function buildTaskEditFormState(input: TaskEditFormStateInput): TaskEditF
 		title: input.task.title,
 		dueDate: input.task.due || "",
 		scheduledDate: input.task.scheduled || "",
+		planningState: input.task.planningState ?? "anytime",
 		priority: input.task.priority,
 		status: input.task.status,
 		contexts: contextValues.join(", "),
+		areas: toTaskStringList(input.task.areas).join(", "),
+		goals: toTaskStringList(input.task.goals).join(", "),
+		relations: toTaskStringList(input.task.relations).join(", "),
 		projectValues,
+		projectSection: input.task.projectSection || "",
+		reviewDate: input.task.reviewDate || "",
 		hasValidProjects: projectValues.some(
 			(project) => typeof project === "string" && project.trim() !== ""
 		),

@@ -20,6 +20,9 @@ import {
 } from "@tasknotes/model/operations";
 import { AutoArchiveService } from "./AutoArchiveService";
 import { TFile, normalizePath } from "obsidian";
+import { buildTaskEntityContent, TASK_ENTITY_FOLDERS, type TaskEntityType } from "../core/taskEntity";
+import { generateUniqueFilename } from "../utils/filenameGenerator";
+import { createVaultFile } from "../core/VaultMutationService";
 import { TemplateData, processTemplate } from "../utils/templateProcessor";
 import type { ProcessedTemplate } from "../utils/templateProcessor";
 import {
@@ -119,6 +122,19 @@ export class TaskService {
 			updateCompletedDateInFrontmatter: (frontmatter, newStatus, isRecurring) =>
 				this.updateCompletedDateInFrontmatter(frontmatter, newStatus, isRecurring),
 		});
+	}
+
+	async createTaskEntity(type: TaskEntityType, title: string): Promise<TFile> {
+		const trimmedTitle = title.trim();
+		if (!trimmedTitle) throw new Error("A title is required");
+		const folder = TASK_ENTITY_FOLDERS[type];
+		await ensureFolderExists(this.plugin.app.vault, folder);
+		const filename = await generateUniqueFilename(trimmedTitle, folder, this.plugin.app.vault);
+		return createVaultFile(
+			this.plugin.app,
+			normalizePath(`${folder}/${filename}.md`),
+			buildTaskEntityContent(type, trimmedTitle)
+		);
 	}
 
 	private hasGoogleCalendarLinks(task: TaskInfo): boolean {
@@ -608,6 +624,9 @@ export class TaskService {
 
 			// Step 2: Persist to file
 			await this.plugin.app.fileManager.processFrontMatter(file, (frontmatter) => {
+				if (property === "planningState") {
+					delete frontmatter[this.plugin.fieldMapper.toUserField("scheduled")];
+				}
 				// Use field mapper to get the correct frontmatter property name
 				const fieldName = resolveTaskPropertyFrontmatterField(
 					this.plugin.fieldMapper,

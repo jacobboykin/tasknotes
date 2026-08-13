@@ -9,6 +9,7 @@ function defaults(overrides: Partial<TaskCreationDefaults> = {}): TaskCreationDe
 		defaultContexts: "",
 		defaultTags: "",
 		defaultProjects: "",
+		defaultPlanningState: "anytime",
 		useParentNoteForTaskCreation: false,
 		useParentNoteAsProject: false,
 		useParentHeaderAsProject: false,
@@ -190,5 +191,26 @@ describe("taskCreationFormState", () => {
 				},
 			})
 		);
+	});
+
+	it("supports native inbox and someday defaults", () => {
+		expect(
+			buildTaskCreationFormState({
+				defaultPriority: "normal",
+				defaultStatus: "open",
+				taskTag: "task",
+				taskCreationDefaults: defaults({ defaultPlanningState: "inbox" }),
+			}).planningState
+		).toBe("inbox");
+
+		expect(
+			buildTaskCreationFormState({
+				defaultPriority: "normal",
+				defaultStatus: "open",
+				taskTag: "task",
+				taskCreationDefaults: defaults(),
+				prePopulatedValues: { planningState: "someday" },
+			}).planningState
+		).toBe("someday");
 	});
 });

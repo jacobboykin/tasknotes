@@ -284,6 +284,11 @@ export function renderGeneralTab(
 			defaultPath: "TaskNotes/Views/agenda-default.base",
 		},
 		{
+			id: "open-entities-view",
+			nameKey: "entities" as const,
+			defaultPath: "TaskNotes/Views/entities-default.base",
+		},
+		{
 			id: "pomodoro-stats-base",
 			nameKey: "pomodoroStats" as const,
 			defaultPath: "TaskNotes/Views/pomodoro-stats.base",

@@ -1,4 +1,4 @@
-import { Reminder, TaskCreationData, TaskDependency } from "../types";
+import { PlanningState, Reminder, TaskCreationData, TaskDependency } from "../types";
 import { getCurrentTimestamp } from "../utils/dateUtils";
 import { sanitizeTags } from "../utils/helpers";
 import { splitListPreservingLinksAndQuotes } from "../utils/stringSplit";
@@ -13,10 +13,16 @@ export interface TaskCreationDataInput {
 	title: string;
 	dueDate: string;
 	scheduledDate: string;
+	planningState?: PlanningState;
 	priority: string;
 	status: string;
 	contexts: string;
+	areas?: string;
+	goals?: string;
+	relations?: string;
 	projects: string;
+	projectSection?: string;
+	reviewDate?: string;
 	tags: string;
 	timeEstimate: number;
 	recurrenceRule: string;
@@ -44,6 +50,13 @@ export function buildTaskCreationData(input: TaskCreationDataInput): TaskCreatio
 		.map((context) => context.trim())
 		.filter((context) => context.length > 0);
 	const projectList = splitListPreservingLinksAndQuotes(input.projects);
+	const splitChips = (value: string) =>
+		splitListPreservingLinksAndQuotes(value)
+			.map((entry) => entry.trim())
+			.filter(Boolean);
+	const areaList = splitChips(input.areas || "");
+	const goalList = splitChips(input.goals || "");
+	const relationList = splitChips(input.relations || "");
 	const tagList = sanitizeTags(input.tags)
 		.split(",")
 		.map((tag) => tag.trim())
@@ -61,10 +74,16 @@ export function buildTaskCreationData(input: TaskCreationDataInput): TaskCreatio
 		title: input.title.trim(),
 		due: input.dueDate || undefined,
 		scheduled: input.scheduledDate || undefined,
+		planningState: input.scheduledDate ? "anytime" : input.planningState ?? "anytime",
 		priority: input.priority,
 		status: input.status,
 		contexts: contextList.length > 0 ? contextList : undefined,
+		areas: areaList.length ? areaList : undefined,
+		goals: goalList.length ? goalList : undefined,
+		relations: relationList.length ? relationList : undefined,
 		projects: projectList.length > 0 ? projectList : undefined,
+		projectSection: input.projectSection || undefined,
+		reviewDate: input.reviewDate || undefined,
 		tags: tagList.length > 0 ? tagList : undefined,
 		timeEstimate: input.timeEstimate > 0 ? input.timeEstimate : undefined,
 		recurrence: input.recurrenceRule || undefined,

@@ -1,4 +1,4 @@
-import type { Reminder, TaskInfo } from "../types";
+import type { PlanningState, Reminder, TaskInfo } from "../types";
 import type { TaskCreationDefaults, UserMappedField } from "../types/settings";
 import { calculateDefaultDate, calculateDefaultDateTime, sanitizeTags } from "../utils/helpers";
 import { convertDefaultRemindersToReminders } from "../utils/settingsUtils";
@@ -23,11 +23,17 @@ export interface TaskCreationFormState {
 	title: string;
 	dueDate: string;
 	scheduledDate: string;
+	planningState: PlanningState;
 	priority: string;
 	status: string;
 	contexts: string;
+	areas: string;
+	goals: string;
+	relations: string;
 	tags: string;
 	projectStrings: string[];
+	projectSection: string;
+	reviewDate: string;
 	timeEstimate: number;
 	recurrenceRule: string;
 	recurrenceAnchor: RecurrenceAnchor;
@@ -46,13 +52,19 @@ export function buildTaskCreationFormState(
 			defaults.defaultScheduledDate,
 			defaults.defaultScheduledTime
 		),
+		planningState: defaults.defaultPlanningState ?? "anytime",
 		priority: input.defaultPriority,
 		status: input.defaultStatus,
 		contexts: defaults.defaultContexts || "",
+		areas: "",
+		goals: "",
+		relations: "",
 		tags: defaults.defaultTags || "",
 		projectStrings: defaults.defaultProjects
 			? splitListPreservingLinksAndQuotes(defaults.defaultProjects)
 			: [],
+		projectSection: "",
+		reviewDate: "",
 		timeEstimate:
 			defaults.defaultTimeEstimate && defaults.defaultTimeEstimate > 0
 				? defaults.defaultTimeEstimate
@@ -116,16 +128,22 @@ function applyPrePopulatedValues(
 	if (values.title !== undefined) state.title = values.title;
 	if (values.due !== undefined) state.dueDate = values.due;
 	if (values.scheduled !== undefined) state.scheduledDate = values.scheduled;
+	if (values.planningState !== undefined) state.planningState = values.planningState;
 	if (values.priority !== undefined) state.priority = values.priority;
 	if (values.status !== undefined) state.status = values.status;
 	if (values.contexts !== undefined) {
 		state.contexts = values.contexts.join(", ");
 	}
+	if (values.areas !== undefined) state.areas = values.areas.join(", ");
+	if (values.goals !== undefined) state.goals = values.goals.join(", ");
+	if (values.relations !== undefined) state.relations = values.relations.join(", ");
 	if (values.projects !== undefined) {
 		state.projectStrings = values.projects.filter(
 			(project) => project && typeof project === "string" && project.trim() !== ""
 		);
 	}
+	if (values.projectSection !== undefined) state.projectSection = values.projectSection;
+	if (values.reviewDate !== undefined) state.reviewDate = values.reviewDate;
 	if (values.tags !== undefined) {
 		state.tags = sanitizeTags(
 			values.tags.filter((tag) => tag !== taskTag).join(", ")

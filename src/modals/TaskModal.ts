@@ -41,7 +41,13 @@ import {
 	renderDependencyList,
 } from "./taskModalDependencies";
 import {
+	createTaskModalPlanningField,
+	createTaskModalAreasField,
 	createTaskModalContextsField,
+	createTaskModalGoalsField,
+	createTaskModalProjectSectionField,
+	createTaskModalRelationsField,
+	createTaskModalReviewDateField,
 	createTaskModalTagsField,
 	createTaskModalTimeEstimateField,
 	type TaskModalMetadataFieldContext,
@@ -209,7 +215,7 @@ export abstract class TaskModal extends Modal {
 			listEl,
 			items,
 			linkServices: this.getLinkServices(),
-			translate: (key, params) => this.t(key, params),
+			translate: (key) => this.t(key),
 			onRemove,
 		});
 	}
@@ -321,10 +327,16 @@ export abstract class TaskModal extends Modal {
 	protected originalDetails = "";
 	protected dueDate = "";
 	protected scheduledDate = "";
+	protected planningState: import("../types").PlanningState = "anytime";
 	protected priority = "normal";
 	protected status = "open";
 	protected contexts = "";
+	protected areas = "";
+	protected goals = "";
+	protected relations = "";
 	protected projects = "";
+	protected projectSection = "";
+	protected reviewDate = "";
 	protected tags = "";
 	protected timeEstimate = 0;
 	protected recurrenceRule = "";
@@ -753,14 +765,33 @@ export abstract class TaskModal extends Modal {
 
 	private getFieldRenderers(): TaskModalFieldRendererMap {
 		return {
+			planning: (container) => this.createPlanningField(container),
 			contexts: (container) => this.createContextsField(container),
 			tags: (container) => this.createTagsField(container),
 			"time-estimate": (container) => this.createTimeEstimateField(container),
 			projects: (container) => this.createProjectsField(container),
+			areas: (container) => this.createAreasField(container),
+			goals: (container) => this.createGoalsField(container),
+			relations: (container) => this.createRelationsField(container),
+			"project-section": (container) => this.createProjectSectionField(container),
+			"review-date": (container) => this.createReviewDateField(container),
 			subtasks: (container) => this.createSubtasksField(container),
 			"blocked-by": (container) => this.createBlockedByField(container),
 			blocking: (container) => this.createBlockingField(container),
 		};
+	}
+
+	protected createPlanningField(container: HTMLElement): void {
+		createTaskModalPlanningField(this.getMetadataFieldContext(), {
+			container,
+			planningState: this.planningState,
+			scheduledDate: this.scheduledDate,
+			onChange: (planningState, scheduledDate) => {
+				this.planningState = planningState;
+				this.scheduledDate = scheduledDate;
+				this.updateIconStates();
+			},
+		});
 	}
 
 	protected createContextsField(container: HTMLElement): void {
@@ -783,6 +814,63 @@ export abstract class TaskModal extends Modal {
 		});
 	}
 
+	protected createAreasField(container: HTMLElement): void {
+		createTaskModalAreasField(this.getMetadataFieldContext(), {
+			container,
+			value: this.areas,
+			onChange: (value) => (this.areas = value),
+		});
+	}
+
+	protected createGoalsField(container: HTMLElement): void {
+		createTaskModalGoalsField(this.getMetadataFieldContext(), {
+			container,
+			value: this.goals,
+			onChange: (value) => (this.goals = value),
+		});
+	}
+
+	protected createRelationsField(container: HTMLElement): void {
+		createTaskModalRelationsField(this.getMetadataFieldContext(), {
+			container,
+			value: this.relations,
+			onChange: (value) => (this.relations = value),
+		});
+	}
+
+	protected createProjectSectionField(container: HTMLElement): void {
+		createTaskModalProjectSectionField(this.getMetadataFieldContext(), {
+			container,
+			value: this.projectSection,
+			label: this.t("modals.task.projectSectionLabel"),
+			placeholder: this.t("modals.task.projectSectionPlaceholder"),
+			getSuggestions: () => this.getProjectSectionSuggestions(),
+			onChange: (value) => (this.projectSection = value),
+		});
+	}
+
+	protected createReviewDateField(container: HTMLElement): void {
+		createTaskModalReviewDateField(this.getMetadataFieldContext(), {
+			container,
+			value: this.reviewDate,
+			onChange: (value) => (this.reviewDate = value),
+		});
+	}
+
+	private getProjectSectionSuggestions(): string[] {
+		return Array.from(
+			new Set(
+				this.selectedProjectItems.flatMap((item) =>
+					item.file
+						? (this.app.metadataCache.getFileCache(item.file)?.headings || []).map(
+								(heading) => heading.heading
+							)
+						: []
+				)
+			)
+		);
+	}
+
 	protected createTimeEstimateField(container: HTMLElement): void {
 		this.timeEstimateInput = createTaskModalTimeEstimateField(this.getMetadataFieldContext(), {
 			container,
@@ -797,7 +885,7 @@ export abstract class TaskModal extends Modal {
 		return {
 			app: this.app,
 			plugin: this.plugin,
-			translate: (key) => this.t(key),
+			translate: (key, params) => this.t(key, params),
 			attachMobileKeyboardScrollGuard: (input) => {
 				this.attachMobileKeyboardScrollGuard(input);
 			},
@@ -999,6 +1087,7 @@ export abstract class TaskModal extends Modal {
 			},
 			setScheduledDate: (value) => {
 				this.scheduledDate = value;
+				if (value) this.planningState = "anytime";
 			},
 			setStatus: (value) => {
 				this.status = value;

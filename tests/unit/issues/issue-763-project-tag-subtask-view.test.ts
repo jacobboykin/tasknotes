@@ -55,6 +55,14 @@ function createPluginWithProjectAutosuggest(
 }
 
 describe('Issue #763: Relationships widget for empty tagged/property projects', () => {
+	it('recognizes native projects, areas, and goals without extra configuration', () => {
+		const plugin = { settings: {} } as TaskNotesPlugin;
+		for (const tasknotesType of ['project', 'area', 'goal']) {
+			expect(
+				isProjectNoteByAutosuggestMarkers(plugin, { frontmatter: { tasknotesType } })
+			).toBe(true);
+		}
+	});
 	it('treats notes matching project autosuggest required tags as project notes', () => {
 		const plugin = createPluginWithProjectAutosuggest({
 			requiredTags: ['project'],

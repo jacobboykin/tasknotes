@@ -1,6 +1,7 @@
 import { Menu, Notice, TFile, type MenuItem } from "obsidian";
 import TaskNotesPlugin from "../main";
 import { TaskInfo } from "../types";
+import { formatDateForStorage } from "../utils/dateUtils";
 import { DateContextMenu, type DateOption } from "./DateContextMenu";
 import { ContextMenu } from "./ContextMenu";
 import { showConfirmationModal } from "../modals/ConfirmationModal";
@@ -99,6 +100,24 @@ export class BatchContextMenu {
 		});
 
 		this.menu.addSeparator();
+
+		this.menu.addItem((item) => {
+			item.setTitle(this.t("contextMenus.task.planning.title"));
+			item.setIcon("inbox");
+			const submenu = getSubmenu(item);
+			for (const option of ["inbox", "today", "anytime", "someday"] as const) {
+				submenu.addItem((subItem) => {
+					subItem
+						.setTitle(this.t(`contextMenus.task.planning.${option}`))
+						.onClick(async () => {
+							await this.batchUpdateProperty(
+								option === "today" ? "scheduled" : "planningState",
+								option === "today" ? formatDateForStorage(new Date()) : option
+							);
+						});
+				});
+			}
+		});
 
 		// Due Date submenu
 		this.menu.addItem((item) => {

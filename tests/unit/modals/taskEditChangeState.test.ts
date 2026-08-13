@@ -194,6 +194,25 @@ describe("taskEditChangeState", () => {
 		expect(result.changes.contexts).toBeUndefined();
 	});
 
+	it("moves scheduled tasks to someday without leaving conflicting dates", () => {
+		const app = createMockApp(MockObsidian.createMockApp());
+		const task = createTask({
+			planningState: "anytime",
+			scheduled: "2026-05-20",
+		});
+
+		const result = buildTaskEditChangesFromModalState({
+			...createState({ task, planningState: "someday" }),
+			app,
+			settings: {},
+			normalizeDetails: (value) => value,
+		});
+
+		expect(result.changes).toEqual(
+			expect.objectContaining({ planningState: "someday", scheduled: undefined })
+		);
+	});
+
 	it("builds skipped recurring instance changes from modal state", () => {
 		const app = createMockApp(MockObsidian.createMockApp());
 		const task = createTask({

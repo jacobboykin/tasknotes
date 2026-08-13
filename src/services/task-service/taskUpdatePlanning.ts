@@ -74,14 +74,18 @@ export interface BuildUpdatedTaskFromPlanInput {
 }
 
 export function normalizeTaskUpdateInput(updates: TaskUpdateInput): TaskUpdateInput {
-	if (!Array.isArray(updates.timeEntries)) {
-		return { ...updates };
-	}
-
-	return {
+	const normalized: TaskUpdateInput = {
 		...updates,
-		timeEntries: updates.timeEntries.map(stripTimeEntryDuration),
 	};
+	if (Array.isArray(updates.timeEntries)) {
+		normalized.timeEntries = updates.timeEntries.map(stripTimeEntryDuration);
+	}
+	if (updates.scheduled) {
+		normalized.planningState = "anytime";
+	} else if (Object.prototype.hasOwnProperty.call(updates, "planningState")) {
+		normalized.scheduled = undefined;
+	}
+	return normalized;
 }
 
 function stripTimeEntryDuration(entry: TimeEntry): TimeEntry {
@@ -310,6 +314,22 @@ function removeUnsetMappedFields(
 		updates.contexts === undefined
 	) {
 		delete frontmatter[fieldMapper.toUserField("contexts")];
+	}
+	for (const field of ["areas", "goals", "relations"] as const) {
+		if (
+			Object.prototype.hasOwnProperty.call(updates, field) &&
+			(!Array.isArray(updates[field]) || updates[field]?.length === 0)
+		) {
+			delete frontmatter[field];
+		}
+	}
+	for (const [property, field] of [
+		["projectSection", "projectSection"],
+		["reviewDate", "review"],
+	] as const) {
+		if (Object.prototype.hasOwnProperty.call(updates, property) && !updates[property]) {
+			delete frontmatter[field];
+		}
 	}
 	if (Object.prototype.hasOwnProperty.call(updates, "projects")) {
 		const projectsField = fieldMapper.toUserField("projects");

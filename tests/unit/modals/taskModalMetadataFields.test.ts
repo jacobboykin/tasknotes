@@ -3,8 +3,7 @@ const mockTextControls: Array<{
 	onChangeCallback?: (value: string) => void;
 }> = [];
 
-const mockContextSuggest = jest.fn();
-const mockTagSuggest = jest.fn();
+const mockChipInput = jest.fn();
 const mockSanitizeTags = jest.fn((value: string) => `sanitized:${value}`);
 
 jest.mock("obsidian", () => ({
@@ -59,9 +58,28 @@ jest.mock("obsidian", () => ({
 	},
 }));
 
-jest.mock("../../../src/modals/taskModalSuggests", () => ({
-	ContextSuggest: mockContextSuggest,
-	TagSuggest: mockTagSuggest,
+jest.mock("../../../src/modals/taskModalChipInput", () => ({
+	TaskModalChipInput: class {
+		private inputEl: HTMLInputElement;
+
+		constructor(options: {
+			container: HTMLElement;
+			value: string;
+			placeholder: string;
+			onChange: (value: string) => void;
+		}) {
+			mockChipInput(options);
+			this.inputEl = document.createElement("input");
+			this.inputEl.value = options.value;
+			this.inputEl.placeholder = options.placeholder;
+			this.inputEl.addEventListener("change", () => options.onChange(this.inputEl.value));
+			options.container.appendChild(this.inputEl);
+		}
+
+		getInputElement(): HTMLInputElement {
+			return this.inputEl;
+		}
+	},
 }));
 
 jest.mock("../../../src/utils/helpers", () => ({
@@ -90,8 +108,7 @@ describe("taskModalMetadataFields", () => {
 	beforeEach(() => {
 		document.body.innerHTML = "";
 		mockTextControls.length = 0;
-		mockContextSuggest.mockClear();
-		mockTagSuggest.mockClear();
+		mockChipInput.mockClear();
 		mockSanitizeTags.mockClear();
 	});
 
@@ -111,9 +128,10 @@ describe("taskModalMetadataFields", () => {
 		expect(container.textContent).toContain("translated:modals.task.contextsLabel");
 		expect(container.querySelector(".tn-task-modal__wide-text-setting")).not.toBeNull();
 		expect(context.attachMobileKeyboardScrollGuard).toHaveBeenCalledWith(input);
-		expect(mockContextSuggest).toHaveBeenCalledWith(context.app, input, context.plugin);
+		expect(mockChipInput).toHaveBeenCalledWith(expect.objectContaining({ value: "home" }));
 
-		mockTextControls[0].onChangeCallback?.("work");
+		input.value = "work";
+		input.dispatchEvent(new Event("change"));
 		expect(onChange).toHaveBeenCalledWith("work");
 	});
 
@@ -128,13 +146,16 @@ describe("taskModalMetadataFields", () => {
 			onChange,
 		});
 
-		expect(input.value).toBe("project");
+		expect(input.value).toBe("sanitized:project");
 		expect(input.placeholder).toBe("translated:modals.task.tagsPlaceholder");
 		expect(container.textContent).toContain("translated:modals.task.tagsLabel");
 		expect(context.attachMobileKeyboardScrollGuard).toHaveBeenCalledWith(input);
-		expect(mockTagSuggest).toHaveBeenCalledWith(context.app, input, context.plugin);
+		expect(mockChipInput).toHaveBeenCalledWith(
+			expect.objectContaining({ value: "sanitized:project" })
+		);
 
-		mockTextControls[0].onChangeCallback?.("#alpha, beta");
+		input.value = "#alpha, beta";
+		input.dispatchEvent(new Event("change"));
 		expect(mockSanitizeTags).toHaveBeenCalledWith("#alpha, beta");
 		expect(onChange).toHaveBeenCalledWith("sanitized:#alpha, beta");
 	});

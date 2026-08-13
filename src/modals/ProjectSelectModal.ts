@@ -45,7 +45,18 @@ export class ProjectSelectModal extends FuzzySuggestModal<TAbstractFile> {
 					file instanceof TFile &&
 					file.extension === "md" &&
 					!file.path.includes(".trash")
-			);
+			)
+			.sort((left, right) => {
+				const leftTyped =
+					left instanceof TFile &&
+					this.app.metadataCache.getFileCache(left)?.frontmatter?.tasknotesType ===
+						"project";
+				const rightTyped =
+					right instanceof TFile &&
+					this.app.metadataCache.getFileCache(right)?.frontmatter?.tasknotesType ===
+						"project";
+				return Number(rightTyped) - Number(leftTyped);
+			});
 
 		// Get filtering settings
 		const requiredTags = this.plugin.settings?.projectAutosuggest?.requiredTags ?? [];
@@ -62,6 +73,7 @@ export class ProjectSelectModal extends FuzzySuggestModal<TAbstractFile> {
 			if (!(file instanceof TFile)) return false;
 
 			const cache = this.app.metadataCache.getFileCache(file);
+			if (cache?.frontmatter?.tasknotesType === "project") return true;
 
 			// Apply tag filtering - use FilterUtils for consistent hierarchical tag matching
 			if (requiredTags.length > 0) {

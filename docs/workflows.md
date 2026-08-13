@@ -50,6 +50,8 @@ tags: ["review"]
 
 A typical daily flow is to start in Task List for prioritization, move to Calendar for schedule placement, and finish in Agenda for near-term sequencing. This keeps backlog management, time allocation, and short-horizon execution in one system.
 
+For a Things-style flow, capture without deciding by running **Capture task to inbox**. Process Inbox later with the task menu's **When** action: move it to Today, Anytime, Someday, or choose a schedule date. Use **Quick find** to jump back to a task, planning list, project, area, or goal.
+
 If you use timeboxing, drag-select on calendar timeline views and create timeblocks directly from the context menu. If you use Pomodoro, run sessions against active tasks so completion and timing data stay attached to task notes.
 
 ![Calendar quick add workflow](assets/workflow-quick-add-calendar.png)
@@ -57,5 +59,7 @@ If you use timeboxing, drag-select on calendar timeline views and create timeblo
 ## Maintenance Workflow (Weekly)
 
 A weekly review usually includes three steps: clean up completed/archived tasks, verify recurring-task completion patterns, and rebalance project filters/views. If calendar integrations are enabled, this is also a good point to refresh subscriptions and confirm sync health.
+
+Open **Projects, Areas & Goals** and use its Review view to find notes whose `review` date has arrived. Project notes start with Next actions and Notes sections; task `projectSection` values can be selected from those headings. Set the next review date as you finish each review.
 
 For teams or complex personal systems, keep project notes as source-of-truth documents and use TaskNotes views as execution dashboards derived from those notes.
