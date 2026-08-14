@@ -64,7 +64,7 @@ In practice, this lets TaskNotes fit into existing vault habits instead of repla
 
 The `planning` property controls whether a task belongs in Inbox, Anytime, or Someday. Scheduling a task places it in Today or Upcoming; completing or archiving it places it in Logbook. The default Task List Base includes all six views, and the task menu's **When** action moves tasks between them.
 
-Projects, areas, and goals are normal notes with `tasknotesType: project`, `area`, or `goal`. Create them from the command palette, browse them in **Open projects, areas & goals**, and assign them from searchable task-modal pickers. Tasks can also carry `projectSection`, `relations`, and `review` metadata. Their relationship widget shows linked projects, areas, goals, related notes, subtasks, and dependencies in both directions.
+Projects, areas, and goals are normal notes with `tasknotesType: project`, `area`, or `goal`. The canonical direction is Task → Project and Project → Area/Goal; reverse relationships and a Task's effective Areas and Goals are derived automatically. Typed frontmatter links create relationships, while ordinary note links remain mentions. Create entities from the command palette, edit their relationships with **Edit current project, area or goal**, and browse them in **Open projects, areas & goals**. See [Projects, Areas, Goals, and Relationships](features/organization.md) for the complete model.
 
 ## YAML Frontmatter
 

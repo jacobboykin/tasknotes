@@ -1,6 +1,9 @@
 import { generateBasesFileTemplate } from "../../../src/templates/defaultBasesFiles";
 
-const createMockPlugin = (settingsOverride: Record<string, unknown> = {}) => {
+const createMockPlugin = (
+	settingsOverride: Record<string, unknown> = {},
+	fieldMappingOverride: Record<string, string> = {}
+) => {
 	const fieldMapping = {
 		status: "status",
 		priority: "priority",
@@ -18,6 +21,7 @@ const createMockPlugin = (settingsOverride: Record<string, unknown> = {}) => {
 		timeEstimate: "timeEstimate",
 		timeEntries: "timeEntries",
 		pomodoros: "pomodoros",
+		...fieldMappingOverride,
 	};
 
 	return {
@@ -103,6 +107,36 @@ describe("defaultBasesFiles", () => {
 		}
 	});
 
+	it("uses typed properties for relationships and rolls task Areas and Goals up through Projects", () => {
+		const template = generateBasesFileTemplate("relationships", createMockPlugin() as any);
+
+		expect(template).not.toContain("file.hasLink(this.file) && list(note.projects)");
+		expect(template).not.toContain("file.hasLink(this.file) && note.recurrence_parent");
+		expect(template).toContain("list(this.projects).map(");
+		expect(template).toContain(
+			').flat().map(if(value.isType("string"), if(/^\\[\\[/.matches(value), file(link(value)).asLink(), file('
+		);
+		expect(template).toContain(".properties.areas");
+		expect(template).toContain(".properties.goals");
+	});
+
+	it("escapes custom relationship property names in Bases expressions", () => {
+		const template = generateBasesFileTemplate(
+			"relationships",
+			createMockPlugin({}, {
+				projects: "work projects",
+				areas: "life-areas",
+				goals: "goal links",
+				relations: "related-notes",
+			}) as any
+		);
+
+		expect(template).toContain('this["work projects"]');
+		expect(template).toContain('properties["life-areas"]');
+		expect(template).toContain('properties["goal links"]');
+		expect(template).toContain('note["related-notes"]');
+	});
+
 	it("creates a first-class project, area, goal, and review workspace", () => {
 		const template = generateBasesFileTemplate("open-entities-view", createMockPlugin() as any);
 
@@ -125,7 +159,7 @@ describe("defaultBasesFiles", () => {
 
 		expect(template).toContain('name: "Occurrences"');
 		expect(template).toContain(
-			'file.hasLink(this.file) && note.recurrence_parent && file(note.recurrence_parent.replace(/^\\[[^\\]]+\\]\\((.*)\\)$/, "$1").replace(/%20/g, " ")).asLink() == this.file.asLink()'
+			'note.recurrence_parent && file(note.recurrence_parent.replace(/^\\[[^\\]]+\\]\\((.*)\\)$/, "$1").replace(/%20/g, " ")).asLink() == this.file.asLink()'
 		);
 		expect(template).toContain("      - file.tasks\n      - occurrence_date");
 		expect(template).toContain("      - column: occurrence_date\n        direction: ASC");
@@ -311,7 +345,7 @@ describe("defaultBasesFiles", () => {
 				"      and:",
 				'        - file.hasTag("task")',
 				'        - file.inFolder("Templates") != true',
-				"        - file.hasLink(this.file)",
+				"        - list(note.projects)",
 			].join("\n")
 		);
 		expect(template).toContain(
@@ -330,7 +364,7 @@ describe("defaultBasesFiles", () => {
 				"      and:",
 				'        - file.hasTag("task")',
 				'        - file.inFolder("Templates") != true',
-				"        - file.hasLink(this.file)",
+				"        - note.recurrence_parent",
 			].join("\n")
 		);
 		expect((template.match(/file\.inFolder\("Templates"\) != true/g) ?? []).length).toBe(8);

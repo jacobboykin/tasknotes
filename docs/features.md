@@ -11,6 +11,7 @@ Reminders can be relative (for example, "3 days before due") or absolute, and co
 See [Task Management](features/task-management.md) for details.
 For recurrence behavior, see [Recurring Tasks](features/recurring-tasks.md).
 For reminder setup and data format, see [Task Reminders](features/reminders.md).
+For the intended Project, Area, Goal, and relationship model, see [Projects, Areas, Goals, and Relationships](features/organization.md).
 
 ## Filtering and Views
 

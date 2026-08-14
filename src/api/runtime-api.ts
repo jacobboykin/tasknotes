@@ -12,6 +12,8 @@ import type {
 	UserMappedField,
 } from "@tasknotes/model";
 import type { ParsedTaskData } from "../services/NaturalLanguageParser";
+import type { TypedRelationshipSnapshot } from "../core/taskRelationships";
+export type { TypedRelationshipSnapshot } from "../core/taskRelationships";
 import type {
 	FilterOptions,
 	PomodoroHistoryStats,
@@ -49,6 +51,7 @@ export const TASKNOTES_RUNTIME_API_CAPABILITIES = [
 	"tasks.move",
 	"tasks.events",
 	"relationships.read",
+	"relationships.typed",
 	"events.list",
 	"time.read",
 	"time.write",
@@ -621,7 +624,15 @@ export interface TaskNotesRuntimeFilterPropertyDefinition {
 }
 
 export interface TaskNotesRuntimeRelationshipDefinition {
-	id: "parents" | "subtasks" | "dependencies" | "blocking";
+	id:
+		| "parents"
+		| "subtasks"
+		| "dependencies"
+		| "blocking"
+		| "projects"
+		| "areas"
+		| "goals"
+		| "related";
 	label: string;
 	description: string;
 }
@@ -798,6 +809,7 @@ export interface TaskNotesRuntimeRelationshipsApi {
 	subtasks(path: string): Promise<TaskInfo[]>;
 	dependencies(path: string): Promise<ResolvedTaskDependency[]>;
 	blocking(path: string): Promise<TaskInfo[]>;
+	typed(path: string): Promise<TypedRelationshipSnapshot>;
 	all(path: string): Promise<TaskNotesTaskRelationships>;
 }
 

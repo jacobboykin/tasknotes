@@ -2230,6 +2230,8 @@ export const ko: TranslationTree = {
 		createProject: "프로젝트 만들기",
 		createArea: "영역 만들기",
 		createGoal: "목표 만들기",
+		editCurrentEntity: "현재 프로젝트, 영역 또는 목표 편집",
+		editCurrentEntitySaveFailure: "프로젝트, 영역 또는 목표 관계를 저장하지 못했습니다.",
 		openNotesView: "노트 뷰 열기",
 		openAgendaView: "일정 뷰 열기",
 		openPomodoroView: "뽀모도로 타이머 열기",

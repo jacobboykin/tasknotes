@@ -2246,6 +2246,8 @@ export const zh: TranslationTree = {
 		createProject: "创建项目",
 		createArea: "创建领域",
 		createGoal: "创建目标",
+		editCurrentEntity: "编辑当前项目、领域或目标",
+		editCurrentEntitySaveFailure: "无法保存项目、领域或目标关系。",
 		openNotesView: "打开笔记视图",
 		openAgendaView: "打开议程视图",
 		openPomodoroView: "打开番茄钟计时器",

@@ -41,6 +41,7 @@ Current capabilities:
 - `tasks.move`
 - `tasks.events`
 - `relationships.read`
+- `relationships.typed`
 - `events.list`
 - `time.read`
 - `time.write`
@@ -255,16 +256,20 @@ Relationship methods resolve TaskNotes' project-as-parent links and `blockedBy` 
 | `api.relationships.subtasks(path)`     | Returns tasks that reference this task as a project.                       |
 | `api.relationships.dependencies(path)` | Returns `blockedBy` dependencies with resolved task data when available.   |
 | `api.relationships.blocking(path)`     | Returns tasks that are blocked by this task.                               |
+| `api.relationships.typed(path)`        | Returns explicit incoming/outgoing Project, Area, Goal, and Related paths plus effective Areas and Goals. |
 | `api.relationships.all(path)`          | Returns the task plus parents, subtasks, dependencies, and blocking tasks. |
 
 Example:
 
 ```javascript
 const relationships = await api.relationships.all("Tasks/example.md");
+const organization = await api.relationships.typed("Tasks/example.md");
 
 for (const subtask of relationships.subtasks) {
 	await api.tasks.setPriority(subtask.path, relationships.task.priority);
 }
+
+console.log(organization.effectiveAreas, organization.effectiveGoals);
 ```
 
 ## Time Tracking

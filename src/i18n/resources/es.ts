@@ -2246,6 +2246,8 @@ export const es: TranslationTree = {
 		createProject: "Crear proyecto",
 		createArea: "Crear área",
 		createGoal: "Crear objetivo",
+		editCurrentEntity: "Editar proyecto, área u objetivo actual",
+		editCurrentEntitySaveFailure: "No se pudieron guardar las relaciones del proyecto, área u objetivo.",
 		openNotesView: "Abrir vista de notas",
 		openAgendaView: "Abrir vista de agenda",
 		openPomodoroView: "Abrir temporizador pomodoro",

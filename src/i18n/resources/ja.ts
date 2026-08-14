@@ -2246,6 +2246,8 @@ export const ja: TranslationTree = {
 		createProject: "プロジェクトを作成",
 		createArea: "エリアを作成",
 		createGoal: "目標を作成",
+		editCurrentEntity: "現在のプロジェクト、エリア、目標を編集",
+		editCurrentEntitySaveFailure: "プロジェクト、エリア、目標の関係を保存できませんでした。",
 		openNotesView: "ノートビューを開く",
 		openAgendaView: "アジェンダビューを開く",
 		openPomodoroView: "ポモドーロタイマーを開く",

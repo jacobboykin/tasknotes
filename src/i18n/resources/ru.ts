@@ -2246,6 +2246,8 @@ export const ru: TranslationTree = {
 		createProject: "Создать проект",
 		createArea: "Создать сферу",
 		createGoal: "Создать цель",
+		editCurrentEntity: "Изменить текущий проект, область или цель",
+		editCurrentEntitySaveFailure: "Не удалось сохранить связи проекта, области или цели.",
 		openNotesView: "Открыть представление заметок",
 		openAgendaView: "Открыть представление планов",
 		openPomodoroView: "Открыть таймер помодоро",

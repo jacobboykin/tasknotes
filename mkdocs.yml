@@ -21,6 +21,7 @@ nav:
     - Guides:
           - Task workflows:
                 - Task management: features/task-management.md
+                - Projects, areas, goals, and relationships: features/organization.md
                 - Recurring tasks: features/recurring-tasks.md
                 - Task reminders: features/reminders.md
                 - Inline tasks: features/inline-tasks.md

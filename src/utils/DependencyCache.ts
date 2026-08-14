@@ -5,6 +5,11 @@ import { normalizeDependencyList, resolveDependencyEntry } from "./dependencyUti
 import { TaskNotesSettings } from "../types/settings";
 import { isPathInExcludedFolder, parseExcludedFolders } from "./pathExclusions";
 import { createTaskNotesLogger } from "./tasknotesLogger";
+import {
+	TYPED_RELATIONSHIP_TYPES,
+	type TypedRelationshipSnapshot,
+	type TypedRelationshipType,
+} from "../core/taskRelationships";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Utils/DependencyCache" });
 
@@ -15,7 +20,7 @@ interface DependencyStatusClassifier {
 }
 
 /**
- * Minimal cache for task dependencies and project references.
+ * Cache for task dependencies and explicit TaskNotes relationships.
  * These require relationship tracking that can't be efficiently computed on-demand.
  *
  * Design Philosophy:
@@ -36,10 +41,20 @@ export class DependencyCache extends Events {
 	private activeDependencySources: Map<string, Set<string>> = new Map(); // task path -> incomplete blocking task paths
 	private activeDependencyTargets: Map<string, Set<string>> = new Map(); // task path -> tasks actively blocked by this task
 
-	// Project references index
-	private projectReferences: Map<string, Set<string>> = new Map(); // project path -> Set<task paths that reference it>
-	private projectReferenceSources: Map<string, Set<string>> = new Map(); // task path -> Set<project paths it references>
-	private relationshipFingerprints: Map<string, string> = new Map(); // task path -> normalized dependency/project fields
+	// Typed relationship indexes. Forward fields are canonical; inverse edges are derived here.
+	private relationshipTargets: Record<TypedRelationshipType, Map<string, Set<string>>> = {
+		project: new Map(),
+		area: new Map(),
+		goal: new Map(),
+		related: new Map(),
+	};
+	private relationshipSources: Record<TypedRelationshipType, Map<string, Set<string>>> = {
+		project: new Map(),
+		area: new Map(),
+		goal: new Map(),
+		related: new Map(),
+	};
+	private relationshipFingerprints: Map<string, string> = new Map();
 	private completedStatusByPath: Map<string, boolean> = new Map(); // file path -> completion state for status-aware dependency lookups
 
 	// Initialization state
@@ -94,11 +109,11 @@ export class DependencyCache extends Events {
 			}
 
 			const metadata = this.app.metadataCache.getFileCache(file);
-			if (!metadata?.frontmatter || !this.isTaskFileCallback(metadata.frontmatter)) {
+			if (!metadata?.frontmatter || !this.isRelationshipSource(metadata.frontmatter)) {
 				continue;
 			}
 
-			this.indexTaskFile(file.path, metadata.frontmatter);
+			this.indexRelationshipFile(file.path, metadata.frontmatter);
 		}
 
 		this.indexesBuilt = true;
@@ -116,6 +131,16 @@ export class DependencyCache extends Events {
 			}
 		});
 		this.eventListeners.push(changedRef);
+
+		const resolvedRef = this.app.metadataCache.on("resolved", () => {
+			if (!this.indexesBuilt) return;
+			// ponytail: rebuild on link-resolution events; track unresolved source refs if
+			// large-vault profiling shows this is materially expensive.
+			this.clearIndexes();
+			this.indexesBuilt = false;
+			this.buildIndexesSync();
+		});
+		this.eventListeners.push(resolvedRef);
 
 		// Listen for file deletion
 		const deletedRef = this.app.metadataCache.on("deleted", (file, prevCache) => {
@@ -151,15 +176,15 @@ export class DependencyCache extends Events {
 
 		if (!frontmatter) {
 			if (this.hasForwardRelationships(file.path)) {
-				this.clearForwardDependencies(file.path);
+				this.clearForwardRelationships(file.path);
 			}
 			this.triggerIfFileRelationshipsChanged(file.path, before);
 			return;
 		}
 
-		if (!this.isTaskFileCallback(frontmatter)) {
+		if (!this.isRelationshipSource(frontmatter)) {
 			if (this.hasForwardRelationships(file.path)) {
-				this.clearForwardDependencies(file.path);
+				this.clearForwardRelationships(file.path);
 			}
 			this.triggerIfFileRelationshipsChanged(file.path, before);
 			return;
@@ -174,8 +199,8 @@ export class DependencyCache extends Events {
 		// Re-index this task
 		// Only clear the forward dependencies (tasks this task depends on)
 		// Keep reverse dependencies intact - they'll be updated when other tasks change
-		this.clearForwardDependencies(file.path);
-		this.indexTaskFile(file.path, frontmatter);
+		this.clearForwardRelationships(file.path);
+		this.indexRelationshipFile(file.path, frontmatter);
 		this.triggerIfFileRelationshipsChanged(file.path, before);
 	}
 
@@ -188,14 +213,14 @@ export class DependencyCache extends Events {
 	private getFileRelationshipSignature(path: string): string {
 		const blockingTasks = this.sortedSetValues(this.dependencySources.get(path));
 		const blockedTasks = this.sortedSetValues(this.activeDependencyTargets.get(path));
-		const referencedProjects = this.sortedSetValues(this.projectReferenceSources.get(path));
-		const projectTasks = this.sortedSetValues(this.projectReferences.get(path));
+		const outgoing = this.getRelationshipRecord(this.relationshipSources, path);
+		const incoming = this.getRelationshipRecord(this.relationshipTargets, path);
 
 		return JSON.stringify({
 			blockedTasks,
 			blockingTasks,
-			projectTasks,
-			referencedProjects,
+			incoming,
+			outgoing,
 		});
 	}
 
@@ -221,9 +246,9 @@ export class DependencyCache extends Events {
 		// Clear old path
 		this.clearFileFromIndexes(oldPath);
 
-		// Index new path if it's a task
-		if (this.isValidFile(file.path) && frontmatter && this.isTaskFileCallback(frontmatter)) {
-			this.indexTaskFile(file.path, frontmatter);
+		// Index new path if it declares TaskNotes relationships.
+		if (this.isValidFile(file.path) && frontmatter && this.isRelationshipSource(frontmatter)) {
+			this.indexRelationshipFile(file.path, frontmatter);
 		}
 		this.trigger(EVENT_DEPENDENCY_CACHE_CHANGED);
 	}
@@ -249,12 +274,12 @@ export class DependencyCache extends Events {
 	/**
 	 * Resolve a project reference string to a file path
 	 */
-	private resolveProjectReference(sourcePath: string, projectRef: string): string | null {
-		if (!projectRef || typeof projectRef !== "string") {
+	private resolveRelationshipReference(sourcePath: string, reference: string): string | null {
+		if (!reference || typeof reference !== "string") {
 			return null;
 		}
 
-		const trimmed = projectRef.trim();
+		const trimmed = reference.trim();
 		if (!trimmed) {
 			return null;
 		}
@@ -265,21 +290,23 @@ export class DependencyCache extends Events {
 	}
 
 	/**
-	 * Index a task file's dependencies and project references
+	 * Index a task or entity note's explicit relationships.
 	 */
-	private indexTaskFile(path: string, frontmatter: Record<string, unknown>): void {
+	private indexRelationshipFile(path: string, frontmatter: Record<string, unknown>): void {
 		if (!this.isValidFile(path)) {
 			return;
 		}
 
 		this.relationshipFingerprints.set(path, this.buildRelationshipFingerprint(frontmatter));
-		this.completedStatusByPath.set(path, this.isCompletedFrontmatter(frontmatter));
+		const isTask = this.isTaskFileCallback(frontmatter);
+		if (isTask) {
+			this.completedStatusByPath.set(path, this.isCompletedFrontmatter(frontmatter));
+		}
 
 		const dependenciesField = this.fieldMapper?.toUserField("blockedBy") || "blockedBy";
-		const projectField = this.fieldMapper?.toUserField("projects") || "project";
 
 		// Index dependencies
-		const dependencies = frontmatter[dependenciesField];
+		const dependencies = isTask ? frontmatter[dependenciesField] : undefined;
 		if (dependencies) {
 			const normalized = normalizeDependencyList(dependencies);
 			if (normalized) {
@@ -298,29 +325,46 @@ export class DependencyCache extends Events {
 			}
 		}
 
-		// Index project references
-		const project = frontmatter[projectField];
-		if (project) {
-			const projects = Array.isArray(project) ? project : [project];
-
-			for (const proj of projects) {
-				if (typeof proj === "string") {
-					// Resolve the project reference to a full file path
-					const resolvedPath = this.resolveProjectReference(path, proj);
-					if (resolvedPath && this.isValidFile(resolvedPath)) {
-						if (!this.projectReferences.has(resolvedPath)) {
-							this.projectReferences.set(resolvedPath, new Set());
-						}
-						this.projectReferences.get(resolvedPath)!.add(path);
-
-						if (!this.projectReferenceSources.has(path)) {
-							this.projectReferenceSources.set(path, new Set());
-						}
-						this.projectReferenceSources.get(path)!.add(resolvedPath);
-					}
+		for (const type of TYPED_RELATIONSHIP_TYPES) {
+			const field = this.getRelationshipField(type);
+			for (const reference of this.normalizeRelationshipValues(frontmatter[field])) {
+				const resolvedPath = this.resolveRelationshipReference(path, reference);
+				if (resolvedPath && this.isValidFile(resolvedPath)) {
+					this.addRelationship(type, path, resolvedPath);
 				}
 			}
 		}
+	}
+
+	private isRelationshipSource(frontmatter: Record<string, unknown>): boolean {
+		if (this.isTaskFileCallback(frontmatter)) return true;
+		return ["project", "area", "goal"].includes(String(frontmatter.tasknotesType));
+	}
+
+	private getRelationshipField(type: TypedRelationshipType): string {
+		switch (type) {
+			case "project":
+				return this.fieldMapper?.toUserField("projects") || "projects";
+			case "area":
+				return this.fieldMapper?.toUserField("areas") || "areas";
+			case "goal":
+				return this.fieldMapper?.toUserField("goals") || "goals";
+			case "related":
+				return this.fieldMapper?.toUserField("relations") || "relations";
+		}
+	}
+
+	private addRelationship(
+		type: TypedRelationshipType,
+		sourcePath: string,
+		targetPath: string
+	): void {
+		const sources = this.relationshipSources[type];
+		const targets = this.relationshipTargets[type];
+		if (!sources.has(sourcePath)) sources.set(sourcePath, new Set());
+		if (!targets.has(targetPath)) targets.set(targetPath, new Set());
+		sources.get(sourcePath)!.add(targetPath);
+		targets.get(targetPath)!.add(sourcePath);
 	}
 
 	private addDependencyLink(
@@ -399,27 +443,31 @@ export class DependencyCache extends Events {
 
 	private buildRelationshipFingerprint(frontmatter: Record<string, unknown>): string {
 		const dependenciesField = this.fieldMapper?.toUserField("blockedBy") || "blockedBy";
-		const projectField = this.fieldMapper?.toUserField("projects") || "project";
 
 		const dependencies = (normalizeDependencyList(frontmatter[dependenciesField]) ?? [])
 			.map((dependency) => dependency.uid)
 			.filter((uid) => uid.length > 0)
 			.sort();
-		const projects = this.normalizeProjectFingerprintValues(frontmatter[projectField]);
+		const relationships = Object.fromEntries(
+			TYPED_RELATIONSHIP_TYPES.map((type) => [
+				type,
+				this.normalizeRelationshipValues(frontmatter[this.getRelationshipField(type)]),
+			])
+		);
 
-		return JSON.stringify({ dependencies, projects });
+		return JSON.stringify({ dependencies, relationships });
 	}
 
-	private normalizeProjectFingerprintValues(value: unknown): string[] {
-		const projects = Array.isArray(value) ? value : value ? [value] : [];
+	private normalizeRelationshipValues(value: unknown): string[] {
+		const values = Array.isArray(value) ? value : value ? [value] : [];
 		const normalized = new Set<string>();
 
-		for (const project of projects) {
-			if (typeof project !== "string") {
+		for (const value of values) {
+			if (typeof value !== "string") {
 				continue;
 			}
 
-			const trimmed = project.trim();
+			const trimmed = value.trim();
 			if (trimmed) {
 				normalized.add(trimmed);
 			}
@@ -432,7 +480,7 @@ export class DependencyCache extends Events {
 		return (
 			this.relationshipFingerprints.has(path) ||
 			this.dependencySources.has(path) ||
-			this.projectReferenceSources.has(path)
+			TYPED_RELATIONSHIP_TYPES.some((type) => this.relationshipSources[type].has(path))
 		);
 	}
 
@@ -488,7 +536,7 @@ export class DependencyCache extends Events {
 	 * Used when a task is modified - we rebuild forward deps from frontmatter
 	 * but keep reverse deps intact (they're stored in other tasks' frontmatter)
 	 */
-	private clearForwardDependencies(path: string): void {
+	private clearForwardRelationships(path: string): void {
 		// Clear from dependency sources (tasks this task depends on)
 		const blockingTasks = this.dependencySources.get(path);
 		if (blockingTasks) {
@@ -507,21 +555,34 @@ export class DependencyCache extends Events {
 		}
 		this.activeDependencySources.delete(path);
 
-		// Also clear project references since those are stored in this task's frontmatter
-		const referencedProjects = this.projectReferenceSources.get(path);
-		if (referencedProjects) {
-			for (const project of referencedProjects) {
-				const taskSet = this.projectReferences.get(project);
-				if (taskSet) {
-					taskSet.delete(path);
-					if (taskSet.size === 0) {
-						this.projectReferences.delete(project);
-					}
-				}
-			}
-			this.projectReferenceSources.delete(path);
-		}
+		this.clearOutgoingRelationships(path);
 		this.relationshipFingerprints.delete(path);
+	}
+
+	private clearOutgoingRelationships(path: string): void {
+		for (const type of TYPED_RELATIONSHIP_TYPES) {
+			const targets = this.relationshipSources[type].get(path);
+			if (!targets) continue;
+			for (const targetPath of targets) {
+				const sources = this.relationshipTargets[type].get(targetPath);
+				sources?.delete(path);
+				if (sources?.size === 0) this.relationshipTargets[type].delete(targetPath);
+			}
+			this.relationshipSources[type].delete(path);
+		}
+	}
+
+	private clearIncomingRelationships(path: string): void {
+		for (const type of TYPED_RELATIONSHIP_TYPES) {
+			const sources = this.relationshipTargets[type].get(path);
+			if (!sources) continue;
+			for (const sourcePath of sources) {
+				const targets = this.relationshipSources[type].get(sourcePath);
+				targets?.delete(path);
+				if (targets?.size === 0) this.relationshipSources[type].delete(sourcePath);
+			}
+			this.relationshipTargets[type].delete(path);
+		}
 	}
 
 	/**
@@ -565,35 +626,8 @@ export class DependencyCache extends Events {
 		}
 		this.activeDependencyTargets.delete(path);
 
-		// Clear project references declared by this file
-		const referencedProjects = this.projectReferenceSources.get(path);
-		if (referencedProjects) {
-			for (const project of referencedProjects) {
-				const taskSet = this.projectReferences.get(project);
-				if (taskSet) {
-					taskSet.delete(path);
-					if (taskSet.size === 0) {
-						this.projectReferences.delete(project);
-					}
-				}
-			}
-			this.projectReferenceSources.delete(path);
-		}
-
-		// Clear this file as a project target
-		const referencingTasks = this.projectReferences.get(path);
-		if (referencingTasks) {
-			for (const taskPath of referencingTasks) {
-				const taskProjects = this.projectReferenceSources.get(taskPath);
-				if (taskProjects) {
-					taskProjects.delete(path);
-					if (taskProjects.size === 0) {
-						this.projectReferenceSources.delete(taskPath);
-					}
-				}
-			}
-			this.projectReferences.delete(path);
-		}
+		this.clearOutgoingRelationships(path);
+		this.clearIncomingRelationships(path);
 		this.relationshipFingerprints.delete(path);
 		this.completedStatusByPath.delete(path);
 	}
@@ -664,8 +698,15 @@ export class DependencyCache extends Events {
 			);
 			this.buildIndexesSync();
 		}
-		const tasks = this.projectReferences.get(projectPath);
-		return tasks ? Array.from(tasks) : [];
+		const sources = this.relationshipTargets.project.get(projectPath);
+		if (!sources) return [];
+		return Array.from(sources).filter((path) => {
+			const file = this.app.vault.getAbstractFileByPath(path);
+			return (
+				file instanceof TFile &&
+				this.isTaskFileCallback(this.getFrontmatterForFile(file) ?? {})
+			);
+		});
 	}
 
 	/**
@@ -683,7 +724,45 @@ export class DependencyCache extends Events {
 			);
 			this.buildIndexesSync();
 		}
-		return this.projectReferences.has(filePath);
+		return this.relationshipTargets.project.has(filePath);
+	}
+
+	getTypedRelationships(path: string): TypedRelationshipSnapshot {
+		if (!this.indexesBuilt) this.buildIndexesSync();
+		const outgoing = this.getRelationshipRecord(this.relationshipSources, path);
+		const incoming = this.getRelationshipRecord(this.relationshipTargets, path);
+		return {
+			path,
+			outgoing,
+			incoming,
+			effectiveAreas: this.getEffectiveTargets(outgoing, "area"),
+			effectiveGoals: this.getEffectiveTargets(outgoing, "goal"),
+		};
+	}
+
+	private getRelationshipRecord(
+		index: Record<TypedRelationshipType, Map<string, Set<string>>>,
+		path: string
+	): Record<TypedRelationshipType, string[]> {
+		return {
+			project: this.sortedSetValues(index.project.get(path)),
+			area: this.sortedSetValues(index.area.get(path)),
+			goal: this.sortedSetValues(index.goal.get(path)),
+			related: this.sortedSetValues(index.related.get(path)),
+		};
+	}
+
+	private getEffectiveTargets(
+		outgoing: Record<TypedRelationshipType, string[]>,
+		type: "area" | "goal"
+	): string[] {
+		const effective = new Set(outgoing[type]);
+		for (const projectPath of outgoing.project) {
+			for (const targetPath of this.relationshipSources[type].get(projectPath) ?? []) {
+				effective.add(targetPath);
+			}
+		}
+		return Array.from(effective).sort();
 	}
 
 	/**
@@ -700,11 +779,11 @@ export class DependencyCache extends Events {
 			}
 
 			const metadata = this.app.metadataCache.getFileCache(file);
-			if (!metadata?.frontmatter || !this.isTaskFileCallback(metadata.frontmatter)) {
+			if (!metadata?.frontmatter || !this.isRelationshipSource(metadata.frontmatter)) {
 				continue;
 			}
 
-			this.indexTaskFile(file.path, metadata.frontmatter);
+			this.indexRelationshipFile(file.path, metadata.frontmatter);
 		}
 
 		this.indexesBuilt = true;
@@ -727,8 +806,10 @@ export class DependencyCache extends Events {
 		this.dependencyTargets.clear();
 		this.activeDependencySources.clear();
 		this.activeDependencyTargets.clear();
-		this.projectReferences.clear();
-		this.projectReferenceSources.clear();
+		for (const type of TYPED_RELATIONSHIP_TYPES) {
+			this.relationshipTargets[type].clear();
+			this.relationshipSources[type].clear();
+		}
 		this.relationshipFingerprints.clear();
 		this.completedStatusByPath.clear();
 	}

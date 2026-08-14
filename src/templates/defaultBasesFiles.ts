@@ -25,6 +25,12 @@ function formatNotePropertyReference(propertyName: string): string {
 	return `note["${escapeBasesStringLiteral(propertyName)}"]`;
 }
 
+function formatBasesPropertyAccess(objectExpression: string, propertyName: string): string {
+	return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(propertyName)
+		? `${objectExpression}.${propertyName}`
+		: `${objectExpression}["${escapeBasesStringLiteral(propertyName)}"]`;
+}
+
 function formatDependencyEntryFileExpression(entryExpression: string): string {
 	return `file(if(${entryExpression}.isType("object"), ${entryExpression}.uid, ${entryExpression}))`;
 }
@@ -35,6 +41,26 @@ function formatDependencyEntryLinkExpression(entryExpression: string): string {
 
 function formatProjectEntryLinkExpression(entryExpression: string): string {
 	return `file(${entryExpression}.replace(/^\\[[^\\]]+\\]\\((.*)\\)$/, "$1").replace(/%20/g, " ")).asLink()`;
+}
+
+function formatProjectEntryFileExpression(entryExpression: string): string {
+	return `file(${entryExpression}.replace(/^\\[[^\\]]+\\]\\((.*)\\)$/, "$1").replace(/%20/g, " "))`;
+}
+
+function formatRelationshipValueLinkExpression(entryExpression: string): string {
+	return `if(${entryExpression}.isType("string"), if(/^\\[\\[/.matches(${entryExpression}), file(link(${entryExpression})).asLink(), ${formatProjectEntryLinkExpression(entryExpression)}), ${entryExpression})`;
+}
+
+function formatInheritedRelationshipExpression(
+	projectsExpression: string,
+	targetProperty: string,
+	targetLinkExpression: string
+): string {
+	const target = formatBasesPropertyAccess(
+		`${formatProjectEntryFileExpression("value")}.properties`,
+		targetProperty
+	);
+	return `list(${projectsExpression}).map(${target}).flat().map(${formatRelationshipValueLinkExpression("value")}).contains(${targetLinkExpression})`;
 }
 
 /**
@@ -1131,6 +1157,34 @@ views:
 				const projectRelationshipFilterPrefix = projectRelationshipFilterYaml
 					? `${projectRelationshipFilterYaml}\n`
 					: '';
+				const currentProjects = formatBasesPropertyAccess("this", projectsProperty);
+				const candidateProjects = formatBasesPropertyAccess("note", projectsProperty);
+				const currentAreas = formatBasesPropertyAccess("this", areasProperty);
+				const candidateAreas = formatBasesPropertyAccess("note", areasProperty);
+				const currentGoals = formatBasesPropertyAccess("this", goalsProperty);
+				const candidateGoals = formatBasesPropertyAccess("note", goalsProperty);
+				const currentRelations = formatBasesPropertyAccess("this", relationsProperty);
+				const candidateRelations = formatBasesPropertyAccess("note", relationsProperty);
+				const currentAreasThroughProjects = formatInheritedRelationshipExpression(
+					currentProjects,
+					areasProperty,
+					"file.asLink()"
+				);
+				const candidateAreasThroughProjects = formatInheritedRelationshipExpression(
+					candidateProjects,
+					areasProperty,
+					"this.file.asLink()"
+				);
+				const currentGoalsThroughProjects = formatInheritedRelationshipExpression(
+					currentProjects,
+					goalsProperty,
+					"file.asLink()"
+				);
+				const candidateGoalsThroughProjects = formatInheritedRelationshipExpression(
+					candidateProjects,
+					goalsProperty,
+					"this.file.asLink()"
+				);
 
 			// Note: No top-level task filter here. Each view applies filters as needed:
 			// - Subtasks, Blocked By, Blocking: include task filter (these are tasks)
@@ -1148,7 +1202,7 @@ views:
     filters:
       and:
 ${taskRelationshipFilterYaml}
-        - file.hasLink(this.file) && list(note.${projectsProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(this.file.asLink())
+        - list(${candidateProjects}).map(${formatProjectEntryLinkExpression("value")}).contains(this.file.asLink())
     order:
 ${orderYaml}
     sort:
@@ -1162,7 +1216,7 @@ ${orderYaml}
     filters:
       and:
 ${taskRelationshipFilterYaml}
-        - file.hasLink(this.file) && note.${recurrenceParentProperty} && ${formatProjectEntryLinkExpression(`note.${recurrenceParentProperty}`)} == this.file.asLink()
+        - note.${recurrenceParentProperty} && ${formatProjectEntryLinkExpression(`note.${recurrenceParentProperty}`)} == this.file.asLink()
     order:
 ${occurrenceOrderYaml}
     sort:
@@ -1172,7 +1226,7 @@ ${occurrenceOrderYaml}
     name: "Projects"
     filters:
       and:
-${projectRelationshipFilterPrefix}        - list(this.${projectsProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(file.asLink())
+${projectRelationshipFilterPrefix}        - list(${currentProjects}).map(${formatProjectEntryLinkExpression("value")}).contains(file.asLink())
     order:
 ${orderYaml}
   - type: tasknotesTaskList
@@ -1180,8 +1234,10 @@ ${orderYaml}
     filters:
       and:
 ${projectRelationshipFilterPrefix}        - or:
-          - list(this.${areasProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(file.asLink())
-          - list(note.${areasProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(this.file.asLink())
+          - list(${currentAreas}).map(${formatProjectEntryLinkExpression("value")}).contains(file.asLink())
+          - list(${candidateAreas}).map(${formatProjectEntryLinkExpression("value")}).contains(this.file.asLink())
+          - ${currentAreasThroughProjects}
+          - ${candidateAreasThroughProjects}
     order:
 ${orderYaml}
   - type: tasknotesTaskList
@@ -1189,8 +1245,10 @@ ${orderYaml}
     filters:
       and:
 ${projectRelationshipFilterPrefix}        - or:
-          - list(this.${goalsProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(file.asLink())
-          - list(note.${goalsProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(this.file.asLink())
+          - list(${currentGoals}).map(${formatProjectEntryLinkExpression("value")}).contains(file.asLink())
+          - list(${candidateGoals}).map(${formatProjectEntryLinkExpression("value")}).contains(this.file.asLink())
+          - ${currentGoalsThroughProjects}
+          - ${candidateGoalsThroughProjects}
     order:
 ${orderYaml}
   - type: tasknotesTaskList
@@ -1198,8 +1256,8 @@ ${orderYaml}
     filters:
       and:
 ${projectRelationshipFilterPrefix}        - or:
-          - list(this.${relationsProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(file.asLink())
-          - list(note.${relationsProperty}).map(${formatProjectEntryLinkExpression("value")}).contains(this.file.asLink())
+          - list(${currentRelations}).map(${formatProjectEntryLinkExpression("value")}).contains(file.asLink())
+          - list(${candidateRelations}).map(${formatProjectEntryLinkExpression("value")}).contains(this.file.asLink())
     order:
 ${orderYaml}
   - type: tasknotesTaskList

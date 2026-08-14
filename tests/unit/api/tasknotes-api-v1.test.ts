@@ -398,6 +398,20 @@ function createPluginContext(initialTasks: TaskInfo[] = [createTask()]): TestPlu
 			},
 		},
 		cacheManager,
+		dependencyCache: {
+			getTypedRelationships: jest.fn((path: string) => ({
+				path,
+				outgoing: {
+					project: ["TaskNotes/Projects/Plan.md"],
+					area: [],
+					goal: [],
+					related: [],
+				},
+				incoming: { project: [], area: [], goal: [], related: [] },
+				effectiveAreas: ["TaskNotes/Areas/Work.md"],
+				effectiveGoals: [],
+			})),
+		},
 		emitter,
 		filterService,
 		taskStatsService,
@@ -538,6 +552,7 @@ describe("TaskNotesApiV1", () => {
 		expect(api.capabilities).toContain("events.list");
 		expect(api.capabilities).toContain("extensions.register");
 		expect(api.capabilities).toContain("relationships.read");
+		expect(api.capabilities).toContain("relationships.typed");
 		expect(api.capabilities).toContain("recurring.materialize");
 		expect(api.capabilities).toContain("model.validate");
 		expect(api.capabilities).toContain("query.tasks");
@@ -554,6 +569,7 @@ describe("TaskNotesApiV1", () => {
 		expect(typeof api.parseNaturalLanguage).toBe("function");
 		expect(typeof api.tasks.update).toBe("function");
 		expect(typeof api.relationships.subtasks).toBe("function");
+		expect(typeof api.relationships.typed).toBe("function");
 		expect(typeof api.time.start).toBe("function");
 		expect(typeof api.pomodoro.start).toBe("function");
 		expect(typeof api.recurring.materializeOccurrence).toBe("function");
@@ -565,6 +581,19 @@ describe("TaskNotesApiV1", () => {
 		expect(typeof api.ui.taskMenu.showAtElement).toBe("function");
 		expect(typeof api.ui.taskMenu.populate).toBe("function");
 		expect(typeof api.extensions.register).toBe("function");
+	});
+
+	it("returns first-class typed and effective relationships without scanning backlinks", async () => {
+		const { plugin } = createPluginContext();
+		const api = new TaskNotesAPI(plugin);
+
+		await expect(api.relationships.typed("Tasks/write-plan.md")).resolves.toMatchObject({
+			outgoing: { project: ["TaskNotes/Projects/Plan.md"] },
+			effectiveAreas: ["TaskNotes/Areas/Work.md"],
+		});
+		expect(plugin.dependencyCache.getTypedRelationships).toHaveBeenCalledWith(
+			"Tasks/write-plan.md"
+		);
 	});
 
 	it("populates the TaskNotes task context menu through the UI API", async () => {
@@ -682,7 +711,11 @@ describe("TaskNotesApiV1", () => {
 			])
 		);
 		expect(api.catalog.relationships()).toEqual(
-			expect.arrayContaining([expect.objectContaining({ id: "dependencies" })])
+			expect.arrayContaining([
+				expect.objectContaining({ id: "dependencies" }),
+				expect.objectContaining({ id: "areas" }),
+				expect.objectContaining({ id: "goals" }),
+			])
 		);
 		expect(api.catalog.dependencyRelTypes()).toEqual(
 			expect.arrayContaining([expect.objectContaining({ value: "FINISHTOSTART" })])

@@ -2246,6 +2246,8 @@ export const de: TranslationTree = {
 		createProject: "Projekt erstellen",
 		createArea: "Bereich erstellen",
 		createGoal: "Ziel erstellen",
+		editCurrentEntity: "Aktuelles Projekt, aktuellen Bereich oder aktuelles Ziel bearbeiten",
+		editCurrentEntitySaveFailure: "Projekt-, Bereichs- oder Zielbeziehungen konnten nicht gespeichert werden.",
 		openNotesView: "Notizenansicht öffnen",
 		openAgendaView: "Agenda-Ansicht öffnen",
 		openPomodoroView: "Pomodoro-Timer öffnen",

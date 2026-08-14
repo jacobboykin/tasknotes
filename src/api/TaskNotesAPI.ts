@@ -97,6 +97,7 @@ import {
 	type TaskNotesRuntimeEventName,
 	type TaskNotesTaskRelationships,
 	type TaskNotesTaskPatch,
+	type TypedRelationshipSnapshot,
 	type UncompleteTaskOptions,
 } from "./runtime-api";
 
@@ -697,6 +698,14 @@ const RELATIONSHIP_DEFINITIONS: readonly TaskNotesRuntimeRelationshipDefinition[
 	},
 	{ id: "dependencies", label: "Dependencies", description: "Tasks this task is blocked by." },
 	{ id: "blocking", label: "Blocking", description: "Tasks blocked by this task." },
+	{ id: "projects", label: "Projects", description: "Explicit Project relationships." },
+	{ id: "areas", label: "Areas", description: "Direct and Project-derived Area relationships." },
+	{ id: "goals", label: "Goals", description: "Direct and Project-derived Goal relationships." },
+	{
+		id: "related",
+		label: "Related",
+		description: "Explicit general relationships, excluding ordinary mentions.",
+	},
 ];
 
 const DEPENDENCY_REL_TYPE_DEFINITIONS: readonly TaskNotesRuntimeDependencyRelTypeDefinition[] = [
@@ -825,6 +834,12 @@ export class TaskNotesAPI implements TaskNotesRuntimeApiV1 {
 		subtasks: (path: string) => this.getSubtasks(path),
 		dependencies: (path: string) => this.getTaskDependencies(path),
 		blocking: (path: string) => this.getBlockingTasks(path),
+		typed: (path: string) =>
+			Promise.resolve(
+				copyTypedRelationshipSnapshot(
+					this.plugin.dependencyCache.getTypedRelationships(path)
+				)
+			),
 		all: (path: string) => this.getTaskRelationships(path),
 	};
 
@@ -3515,4 +3530,24 @@ function copyTaskInfo(task: TaskInfo): TaskInfo {
 	}
 
 	return copy;
+}
+
+function copyTypedRelationshipSnapshot(snapshot: TypedRelationshipSnapshot): TypedRelationshipSnapshot {
+	return {
+		path: snapshot.path,
+		outgoing: {
+			project: [...snapshot.outgoing.project],
+			area: [...snapshot.outgoing.area],
+			goal: [...snapshot.outgoing.goal],
+			related: [...snapshot.outgoing.related],
+		},
+		incoming: {
+			project: [...snapshot.incoming.project],
+			area: [...snapshot.incoming.area],
+			goal: [...snapshot.incoming.goal],
+			related: [...snapshot.incoming.related],
+		},
+		effectiveAreas: [...snapshot.effectiveAreas],
+		effectiveGoals: [...snapshot.effectiveGoals],
+	};
 }

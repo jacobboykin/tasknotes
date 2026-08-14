@@ -5508,6 +5508,14 @@
       "source": "7b0f387040e0a7f46666e00047c7633dbddfd52a",
       "translation": "96be55f368975ecc44f8a61cc3a20907b80dc346"
     },
+    "commands.editCurrentEntity": {
+      "source": "100c59d6844d47d369a7916f4c245dd9c7cdaadc",
+      "translation": "3ca46f5632f1c3bf0bcdea01ce6b6cb0c8cc94b9"
+    },
+    "commands.editCurrentEntitySaveFailure": {
+      "source": "f9125a8a3a9a613fdcffc822a129b48bc049c890",
+      "translation": "eb65bc9c3659fb7fbf6054d14997d34915d112c8"
+    },
     "commands.openNotesView": {
       "source": "1f42739a5592c924475f7b44133ba90211acddba",
       "translation": "704ad146208218f5a910f9c53daf8495323e8405"
@@ -14581,6 +14589,14 @@
     "commands.createGoal": {
       "source": "7b0f387040e0a7f46666e00047c7633dbddfd52a",
       "translation": "e6f9ef168faf12b1a73cd637b64dd8a85a101718"
+    },
+    "commands.editCurrentEntity": {
+      "source": "100c59d6844d47d369a7916f4c245dd9c7cdaadc",
+      "translation": "dc4c92e480452ac89519d03ee5cdc87e351edc32"
+    },
+    "commands.editCurrentEntitySaveFailure": {
+      "source": "f9125a8a3a9a613fdcffc822a129b48bc049c890",
+      "translation": "8f3e6c7d4b259f939444f214efaa516bc21c994d"
     },
     "commands.openNotesView": {
       "source": "1f42739a5592c924475f7b44133ba90211acddba",
@@ -23656,6 +23672,14 @@
       "source": "7b0f387040e0a7f46666e00047c7633dbddfd52a",
       "translation": "ce393296d99bfbd180b8876b362ba362c90f5d3a"
     },
+    "commands.editCurrentEntity": {
+      "source": "100c59d6844d47d369a7916f4c245dd9c7cdaadc",
+      "translation": "aaf05d5a8be273b73efb5f562382e6ab7e1a5132"
+    },
+    "commands.editCurrentEntitySaveFailure": {
+      "source": "f9125a8a3a9a613fdcffc822a129b48bc049c890",
+      "translation": "d23687f15825d6cc47a14c191b0e4ec710515d94"
+    },
     "commands.openNotesView": {
       "source": "1f42739a5592c924475f7b44133ba90211acddba",
       "translation": "fbee6d823aa81affb7cf4eafad65d4254d38703b"
@@ -32729,6 +32753,14 @@
     "commands.createGoal": {
       "source": "7b0f387040e0a7f46666e00047c7633dbddfd52a",
       "translation": "04b237ad327446d019aa340a4d842b4711060377"
+    },
+    "commands.editCurrentEntity": {
+      "source": "100c59d6844d47d369a7916f4c245dd9c7cdaadc",
+      "translation": "57885fc0c12f19a24f8bbf4f1dde1c6a87208468"
+    },
+    "commands.editCurrentEntitySaveFailure": {
+      "source": "f9125a8a3a9a613fdcffc822a129b48bc049c890",
+      "translation": "dba8046c96d88ec4b219f8c1fac8aa637211e42e"
     },
     "commands.openNotesView": {
       "source": "1f42739a5592c924475f7b44133ba90211acddba",
@@ -41804,6 +41836,14 @@
       "source": "7b0f387040e0a7f46666e00047c7633dbddfd52a",
       "translation": "466c74233916c682f3cef9dd13aeaae4c05e1c7a"
     },
+    "commands.editCurrentEntity": {
+      "source": "100c59d6844d47d369a7916f4c245dd9c7cdaadc",
+      "translation": "c4246215ae99f4859fe35db0830062ece3cae67d"
+    },
+    "commands.editCurrentEntitySaveFailure": {
+      "source": "f9125a8a3a9a613fdcffc822a129b48bc049c890",
+      "translation": "881c882230df5f2ec124f0f3c92c1ae1c84a8aff"
+    },
     "commands.openNotesView": {
       "source": "1f42739a5592c924475f7b44133ba90211acddba",
       "translation": "e8507b1db1a5d2315cd4cc1ba32d9f3d1142a547"
@@ -50877,6 +50917,14 @@
     "commands.createGoal": {
       "source": "7b0f387040e0a7f46666e00047c7633dbddfd52a",
       "translation": "a77c0be874fd4f39bd05ae75b0f73a22b8376e63"
+    },
+    "commands.editCurrentEntity": {
+      "source": "100c59d6844d47d369a7916f4c245dd9c7cdaadc",
+      "translation": "9d6a28dbc05c95b9966892b6ca3c5c6d56c7fcd8"
+    },
+    "commands.editCurrentEntitySaveFailure": {
+      "source": "f9125a8a3a9a613fdcffc822a129b48bc049c890",
+      "translation": "e227d29572aceeba865227e97e3551786fd631d2"
     },
     "commands.openNotesView": {
       "source": "1f42739a5592c924475f7b44133ba90211acddba",
@@ -59952,6 +60000,14 @@
       "source": "7b0f387040e0a7f46666e00047c7633dbddfd52a",
       "translation": "a8152791f552463ab3ae78ed572e6603f93b1afb"
     },
+    "commands.editCurrentEntity": {
+      "source": "100c59d6844d47d369a7916f4c245dd9c7cdaadc",
+      "translation": "fd3fa92e01d26d9b6727a9405084e6d7002065bf"
+    },
+    "commands.editCurrentEntitySaveFailure": {
+      "source": "f9125a8a3a9a613fdcffc822a129b48bc049c890",
+      "translation": "cf4ca5a8c98353e445bbec1fc4cb6046df1e12ff"
+    },
     "commands.openNotesView": {
       "source": "1f42739a5592c924475f7b44133ba90211acddba",
       "translation": "d95d97f74604bac906fd1eedb1a85f3e375e72a3"
@@ -69025,6 +69081,14 @@
     "commands.createGoal": {
       "source": "7b0f387040e0a7f46666e00047c7633dbddfd52a",
       "translation": "f4e8b2ec21e770417d059361543388c2647bb9d6"
+    },
+    "commands.editCurrentEntity": {
+      "source": "100c59d6844d47d369a7916f4c245dd9c7cdaadc",
+      "translation": "6608e90b1ad14de644a84b72dd18f699dfd259b3"
+    },
+    "commands.editCurrentEntitySaveFailure": {
+      "source": "f9125a8a3a9a613fdcffc822a129b48bc049c890",
+      "translation": "fdc2a5f9b8de63912c1b6c31e55d7d0cbec1f4a3"
     },
     "commands.openNotesView": {
       "source": "1f42739a5592c924475f7b44133ba90211acddba",

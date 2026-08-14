@@ -20,7 +20,12 @@ import {
 } from "@tasknotes/model/operations";
 import { AutoArchiveService } from "./AutoArchiveService";
 import { TFile, normalizePath } from "obsidian";
-import { buildTaskEntityContent, TASK_ENTITY_FOLDERS, type TaskEntityType } from "../core/taskEntity";
+import {
+	buildTaskEntityContent,
+	TASK_ENTITY_FOLDERS,
+	type TaskEntityRelationships,
+	type TaskEntityType,
+} from "../core/taskEntity";
 import { generateUniqueFilename } from "../utils/filenameGenerator";
 import { createVaultFile } from "../core/VaultMutationService";
 import { TemplateData, processTemplate } from "../utils/templateProcessor";
@@ -152,6 +157,30 @@ export class TaskService {
 			normalizePath(`${folder}/${filename}.md`),
 			buildTaskEntityContent(type, trimmedTitle)
 		);
+	}
+
+	async updateTaskEntityRelationships(
+		file: TFile,
+		type: TaskEntityType,
+		relationships: TaskEntityRelationships
+	): Promise<void> {
+		await this.plugin.app.fileManager.processFrontMatter(file, (frontmatter) => {
+			this.writeTaskEntityRelationshipList(frontmatter, "relations", relationships.relations);
+			if (type === "project") {
+				this.writeTaskEntityRelationshipList(frontmatter, "areas", relationships.areas);
+				this.writeTaskEntityRelationshipList(frontmatter, "goals", relationships.goals);
+			}
+		});
+	}
+
+	private writeTaskEntityRelationshipList(
+		frontmatter: Record<string, unknown>,
+		field: "areas" | "goals" | "relations",
+		values: string[]
+	): void {
+		const key = this.plugin.fieldMapper.toUserField(field);
+		if (values.length > 0) frontmatter[key] = values;
+		else delete frontmatter[key];
 	}
 
 	private hasGoogleCalendarLinks(task: TaskInfo): boolean {

@@ -1376,6 +1376,8 @@
   "commands.createProject": "a8d8ff51e4c8f223711852c2458e04f88d42d671",
   "commands.createArea": "4c6a6b4638b77bc89ca2e8d121e44e87dd6a92d9",
   "commands.createGoal": "7b0f387040e0a7f46666e00047c7633dbddfd52a",
+  "commands.editCurrentEntity": "100c59d6844d47d369a7916f4c245dd9c7cdaadc",
+  "commands.editCurrentEntitySaveFailure": "f9125a8a3a9a613fdcffc822a129b48bc049c890",
   "commands.openNotesView": "1f42739a5592c924475f7b44133ba90211acddba",
   "commands.openAgendaView": "8497bcbfd3a589408c7f7541e705729f239dcfc7",
   "commands.openPomodoroView": "cc7982a09d43b12447181cb166298224d02e6637",

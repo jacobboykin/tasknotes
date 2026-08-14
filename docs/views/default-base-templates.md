@@ -753,7 +753,7 @@ views:
 
 ## Relationships
 
-Used by the **Relationships widget** to display task relationships (subtasks, materialized occurrences, projects, blocked by, blocking).
+Used by the **Relationships widget** to display typed relationships (subtasks, materialized occurrences, projects, areas, goals, related notes, blocked by, and blocking). Area and Goal tabs include one-hop membership inherited through Projects. Ordinary backlinks are not treated as relationships.
 
 This template uses the special `this` object to reference the current file's properties, enabling dynamic relationship queries.
 
@@ -778,7 +778,7 @@ views:
     filters:
       and:
         - file.hasTag("task")
-        - file.hasLink(this.file) && list(note.projects).map(file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink()).contains(this.file.asLink())
+        - list(note.projects).map(file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink()).contains(this.file.asLink())
     order:
       - status
       - priority
@@ -803,7 +803,7 @@ views:
     filters:
       and:
         - file.hasTag("task")
-        - file.hasLink(this.file) && note.recurrence_parent && file(note.recurrence_parent.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink() == this.file.asLink()
+        - note.recurrence_parent && file(note.recurrence_parent.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink() == this.file.asLink()
     order:
       - status
       - priority
@@ -826,6 +826,44 @@ views:
     filters:
       and:
         - list(this.projects).map(file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink()).contains(file.asLink())
+    order:
+      - status
+      - priority
+      - due
+      - scheduled
+      - projects
+      - contexts
+      - tags
+      - blockedBy
+      - file.name
+      - recurrence
+      - complete_instances
+      - file.tasks
+  - type: tasknotesTaskList
+    name: "Areas"
+    filters:
+      and:
+        - or:
+          - list(this.areas).map(file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink()).contains(file.asLink())
+          - list(note.areas).map(file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink()).contains(this.file.asLink())
+          - list(this.projects).map(file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).properties.areas).flat().map(if(value.isType("string"), if(/^\[\[/.matches(value), file(link(value)).asLink(), file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink()), value)).contains(file.asLink())
+          - list(note.projects).map(file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).properties.areas).flat().map(if(value.isType("string"), if(/^\[\[/.matches(value), file(link(value)).asLink(), file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink()), value)).contains(this.file.asLink())
+  - type: tasknotesTaskList
+    name: "Goals"
+    filters:
+      and:
+        - or:
+          - list(this.goals).map(file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink()).contains(file.asLink())
+          - list(note.goals).map(file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink()).contains(this.file.asLink())
+          - list(this.projects).map(file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).properties.goals).flat().map(if(value.isType("string"), if(/^\[\[/.matches(value), file(link(value)).asLink(), file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink()), value)).contains(file.asLink())
+          - list(note.projects).map(file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).properties.goals).flat().map(if(value.isType("string"), if(/^\[\[/.matches(value), file(link(value)).asLink(), file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink()), value)).contains(this.file.asLink())
+  - type: tasknotesTaskList
+    name: "Related"
+    filters:
+      and:
+        - or:
+          - list(this.relations).map(file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink()).contains(file.asLink())
+          - list(note.relations).map(file(value.replace(/^\[[^\]]+\]\((.*)\)$/, "$1").replace(/%20/g, " ")).asLink()).contains(this.file.asLink())
     order:
       - status
       - priority

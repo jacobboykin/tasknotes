@@ -5,6 +5,8 @@ import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 import { showConfirmationModal } from "../modals/ConfirmationModal";
 import { TaskEntityCreationModal } from "../modals/TaskEntityCreationModal";
 import { TaskNotesQuickFindModal } from "../modals/TaskNotesQuickFindModal";
+import { TaskEntityEditModal } from "../modals/TaskEntityEditModal";
+import { getTaskEntityType } from "../core/taskEntity";
 import { calculateDefaultDate } from "../utils/helpers";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Commands/TaskNotesCommands" });
@@ -144,6 +146,18 @@ export function createTaskNotesCommandDefinitions(
 			callback: (ctx: TaskNotesPlugin) =>
 				new TaskEntityCreationModal(ctx.app, ctx, type).open(),
 		})),
+		{
+			id: "edit-current-entity",
+			nameKey: "commands.editCurrentEntity",
+			callback: (ctx) => {
+				const file = ctx.app.workspace.getActiveFile();
+				if (!file) return;
+				const type = getTaskEntityType(
+					ctx.app.metadataCache.getFileCache(file)?.frontmatter?.tasknotesType
+				);
+				if (type) new TaskEntityEditModal(ctx.app, ctx, file, type).open();
+			},
+		},
 		{
 			id: "convert-current-note-to-task",
 			nameKey: "commands.convertCurrentNoteToTask.name",
