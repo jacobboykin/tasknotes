@@ -38,6 +38,7 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 - Added searchable multi-select chips for tags, contexts, areas, goals, and related notes.
 - Added first-class project, area, and goal notes, project sections, review dates, reverse relationships, and a combined organization/review Base.
 - Added Quick Find plus dedicated Inbox capture, Today capture, planning, and entity-creation commands.
+- Added Things-style recurring task templates with independent copies created on schedule, optional repeat-after-completion behavior, and start-before-deadline offsets. See [Recurring Tasks](https://tasknotes.dev/features/recurring-tasks/#occurrence-note-policies) for setup and behavior.
 
 ## Changed
 

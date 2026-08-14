@@ -36,6 +36,7 @@ export interface CreateTaskModalPlanningFieldOptions {
 	container: HTMLElement;
 	planningState: PlanningState;
 	scheduledDate: string;
+	allowToday?: boolean;
 	onChange: (planningState: PlanningState, scheduledDate: string) => void;
 }
 
@@ -56,8 +57,10 @@ export function createTaskModalPlanningField(
 		.addDropdown((dropdown) => {
 			dropdown
 				.addOption("inbox", context.translate("modals.task.planning.inbox"))
-				.addOption("anytime", context.translate("modals.task.planning.anytime"))
-				.addOption("today", context.translate("modals.task.planning.today"));
+				.addOption("anytime", context.translate("modals.task.planning.anytime"));
+			if (options.allowToday !== false) {
+				dropdown.addOption("today", context.translate("modals.task.planning.today"));
+			}
 			if (selectedValue === "scheduled") {
 				dropdown.addOption(
 					"scheduled",

@@ -483,6 +483,7 @@ export interface TaskInfo {
 	occurrence_template?: string; // Optional template note/link for generated occurrence notes
 	occurrence_past_horizon?: string; // ISO duration override for rolling materialization past horizon
 	occurrence_future_horizon?: string; // ISO duration override for rolling materialization future horizon
+	recurrence_start_offset?: number; // Days before an occurrence deadline when its task should start
 	completedDate?: string; // Date (YYYY-MM-DD) when task was marked as done
 	timeEstimate?: number; // Estimated time in minutes
 	timeEntries?: TimeEntry[]; // Individual time tracking sessions
@@ -596,6 +597,7 @@ export interface TaskFrontmatter {
 	occurrence_template?: string;
 	occurrence_past_horizon?: string;
 	occurrence_future_horizon?: string;
+	recurrence_start_offset?: number;
 	completedDate?: string;
 	timeEstimate?: number;
 	timeEntries?: TimeEntry[];
@@ -744,6 +746,7 @@ export interface FieldMapping {
 	relations: string;
 	projectSection: string;
 	reviewDate: string;
+	recurrenceStartOffset: string;
 }
 
 export interface StatusConfig {

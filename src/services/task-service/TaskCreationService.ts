@@ -220,6 +220,7 @@ export class TaskCreationService {
 				relations: taskData.relations,
 				projectSection: taskData.projectSection,
 				reviewDate: taskData.reviewDate,
+				recurrence_start_offset: taskData.recurrence_start_offset,
 				timeEstimate:
 					taskData.timeEstimate && taskData.timeEstimate > 0
 						? taskData.timeEstimate

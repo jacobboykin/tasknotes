@@ -296,16 +296,19 @@ describe("Issue #1724: recurring task actions belong with date menu items", () =
 		const policyTitles = getAllMenuTitles().filter(
 			(title) =>
 				title.includes("Occurrence") ||
-				title.includes("Create next") ||
+				title.includes("Virtual") ||
+				title.includes("Repeat") ||
 				title.includes("Completion") ||
-				title.includes("Rolling")
+				title.includes("deadline")
 		);
 
 		expect(policyTitles).toEqual(
 			expect.arrayContaining([
 				"Occurrence notes",
-				"✓ Create next after completion",
-				"Rolling window (not automated yet)",
+				"Virtual occurrences",
+				"Repeat on schedule",
+				"✓ Repeat after completion",
+				"No deadline",
 				"✓ Completion or skip",
 			])
 		);

@@ -9,4 +9,5 @@ export const DEFAULT_FIELD_MAPPING: FieldMapping = {
 	relations: "relations",
 	projectSection: "projectSection",
 	reviewDate: "review",
+	recurrenceStartOffset: "recurrence_start_offset",
 };

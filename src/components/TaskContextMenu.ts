@@ -46,6 +46,7 @@ import {
 } from "../ui/occurrenceNoteActions";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
 import type { UserMappedField } from "../types/settings";
+import { isAutomaticOccurrenceTemplate } from "../services/task-service/rollingOccurrencePlanning";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Components/TaskContextMenu" });
 
@@ -168,6 +169,7 @@ export class TaskContextMenu {
 	private buildMenu(): void {
 		const { task, plugin } = this.options;
 		const hasPromotedOccurrenceControls = this.addPromotedOccurrenceControls(task, plugin);
+		const isAutomaticTemplate = isAutomaticOccurrenceTemplate(task);
 
 		// Status submenu
 		this.menu.addItem((item) => {
@@ -206,8 +208,9 @@ export class TaskContextMenu {
 			this.addPlanningOptions(getSubmenu(item), task, plugin);
 		});
 
-		// Due Date submenu
-		this.menu.addItem((item) => {
+		if (!isAutomaticTemplate) {
+			// Due Date submenu
+			this.menu.addItem((item) => {
 			item.setTitle(this.t("contextMenus.task.dueDate"));
 			item.setIcon("calendar");
 
@@ -238,10 +241,10 @@ export class TaskContextMenu {
 					void plugin.openDueDateModal(task);
 				}
 			);
-		});
+			});
 
-		// Scheduled Date submenu
-		this.menu.addItem((item) => {
+			// Scheduled Date submenu
+			this.menu.addItem((item) => {
 			item.setTitle(this.t("contextMenus.task.scheduledDate"));
 			item.setIcon("calendar-clock");
 
@@ -272,7 +275,8 @@ export class TaskContextMenu {
 					void plugin.openScheduledDateModal(task);
 				}
 			);
-		});
+			});
+		}
 
 		this.addCustomDateFieldMenuItems(task, plugin);
 
@@ -864,6 +868,9 @@ export class TaskContextMenu {
 		] as const;
 
 		for (const option of options) {
+			if (option.value === "today" && isAutomaticOccurrenceTemplate(task)) {
+				continue;
+			}
 			submenu.addItem((item) => {
 				item
 					.setTitle(this.t(`contextMenus.task.planning.${option.value}`))
@@ -2155,12 +2162,12 @@ export class TaskContextMenu {
 
 		submenu.addSeparator();
 		submenu.addItem((item) => {
-			item.setTitle("Occurrence notes");
+			item.setTitle(this.t("contextMenus.task.occurrenceNotes.title"));
 			item.setIcon("files");
 
 			const policyMenu = getSubmenu(item);
 			const addModeOption = (
-				mode: Exclude<OccurrenceMaterializationMode, "rolling">,
+				mode: OccurrenceMaterializationMode,
 				label: string,
 				icon: string
 			) => {
@@ -2173,18 +2180,41 @@ export class TaskContextMenu {
 				});
 			};
 
-			addModeOption("manual", "Create manually", "file-plus");
-			addModeOption("on_completion", "Create next after completion", "check-circle");
+			addModeOption(
+				"manual",
+				this.t("contextMenus.task.occurrenceNotes.virtual"),
+				"calendar-clock"
+			);
+			addModeOption(
+				"rolling",
+				this.t("contextMenus.task.occurrenceNotes.onSchedule"),
+				"calendar-range"
+			);
+			addModeOption(
+				"on_completion",
+				this.t("contextMenus.task.occurrenceNotes.afterCompletion"),
+				"check-circle"
+			);
 
-			policyMenu.addItem((modeItem) => {
-				modeItem.setTitle(
-					currentMode === "rolling"
-						? "✓ Rolling window (not automated yet)"
-						: "Rolling window (not automated yet)"
-				);
-				modeItem.setIcon("calendar-range");
-				modeItem.setDisabled(true);
-			});
+			if (currentMode !== "manual") {
+				policyMenu.addItem((deadlineItem) => {
+					const offset = task.recurrence_start_offset;
+					deadlineItem.setTitle(
+						offset === undefined
+							? this.t("contextMenus.task.occurrenceNotes.noDeadline")
+							: offset === 0
+								? this.t("contextMenus.task.occurrenceNotes.deadlineOnStart")
+								: this.t(
+										"contextMenus.task.occurrenceNotes.startBeforeDeadline",
+										{ days: offset }
+									)
+					);
+					deadlineItem.setIcon("flag");
+					deadlineItem.onClick(() => {
+						void this.configureRecurrenceStartOffset(task, plugin);
+					});
+				});
+			}
 
 			if (currentMode !== "on_completion") {
 				return;
@@ -2225,13 +2255,12 @@ export class TaskContextMenu {
 	private async updateOccurrenceMaterializationPolicy(
 		task: TaskInfo,
 		plugin: TaskNotesPlugin,
-		mode: Exclude<OccurrenceMaterializationMode, "rolling">
+		mode: OccurrenceMaterializationMode
 	): Promise<void> {
 		try {
-			const updatedTask = await plugin.updateTaskProperty(
+			const updatedTask = await plugin.taskService.setOccurrenceMaterializationPolicy(
 				task,
-				"occurrence_materialization",
-				mode === "manual" ? undefined : mode
+				mode
 			);
 			Object.assign(task, updatedTask);
 
@@ -2247,8 +2276,10 @@ export class TaskContextMenu {
 			this.options.onUpdate?.();
 			new Notice(
 				mode === "manual"
-					? "Occurrence notes set to manual creation"
-					: "Occurrence notes will be created after completion"
+					? this.t("contextMenus.task.occurrenceNotes.notices.virtual")
+					: mode === "rolling"
+						? this.t("contextMenus.task.occurrenceNotes.notices.onSchedule")
+						: this.t("contextMenus.task.occurrenceNotes.notices.afterCompletion")
 			);
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error);
@@ -2258,7 +2289,51 @@ export class TaskContextMenu {
 				details: { taskPath: task.path, mode },
 				error: errorMessage,
 			});
-			new Notice(`Failed to update occurrence notes setting: ${errorMessage}`);
+			new Notice(
+				this.t("contextMenus.task.occurrenceNotes.notices.updateFailed", {
+					message: errorMessage,
+				})
+			);
+		}
+	}
+
+	private async configureRecurrenceStartOffset(
+		task: TaskInfo,
+		plugin: TaskNotesPlugin
+	): Promise<void> {
+		const value = await showTextInputModal(plugin.app, {
+			title: this.t("contextMenus.task.occurrenceNotes.startOffsetTitle"),
+			placeholder: this.t("contextMenus.task.occurrenceNotes.startOffsetPlaceholder"),
+			initialValue: task.recurrence_start_offset?.toString() ?? "none",
+			confirmText: this.t("common.save"),
+			onInputReady: (input) => {
+				input.inputMode = "numeric";
+			},
+		});
+		if (value === null) return;
+
+		const normalized = value.trim().toLocaleLowerCase();
+		const days = normalized === "none" ? undefined : Number(normalized);
+		if (days !== undefined && (!Number.isInteger(days) || days < 0)) {
+			new Notice(this.t("contextMenus.task.occurrenceNotes.invalidStartOffset"));
+			return;
+		}
+
+		try {
+			const updated = await plugin.taskService.setRecurrenceStartOffset(task, days);
+			Object.assign(task, updated);
+			this.options.onUpdate?.();
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			tasknotesLogger.error("Failed to update recurrence deadline:", {
+				category: "persistence",
+				operation: "update-recurrence-start-offset",
+				details: { taskPath: task.path },
+				error,
+			});
+			new Notice(
+				this.t("contextMenus.task.occurrenceNotes.notices.deadlineFailed", { message })
+			);
 		}
 	}
 

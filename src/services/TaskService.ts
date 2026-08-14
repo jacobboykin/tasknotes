@@ -27,6 +27,7 @@ import { TemplateData, processTemplate } from "../utils/templateProcessor";
 import type { ProcessedTemplate } from "../utils/templateProcessor";
 import {
 	ensureFolderExists,
+	getNextUncompletedOccurrence,
 	splitFrontmatterAndBody,
 	resetMarkdownCheckboxes,
 } from "../utils/helpers";
@@ -88,8 +89,23 @@ import {
 } from "./task-service/taskBlockingRelationships";
 import { resolveTaskPropertyFrontmatterField } from "./task-service/taskPropertyFrontmatterField";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
+import type { OccurrenceMaterializationMode } from "@tasknotes/model";
+import {
+	buildOccurrenceTemplateConversion,
+	getGeneratedOccurrenceDateOverrides,
+	getOccurrenceDateOverrides,
+	getRollingOccurrenceDates,
+	isAutomaticOccurrenceTemplate,
+	isOccurrenceOf,
+} from "./task-service/rollingOccurrencePlanning";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Services/TaskService" });
+
+function assertAutomaticTemplateHasNoDates(task: TaskInfo, scheduled: unknown, due: unknown): void {
+	if (isAutomaticOccurrenceTemplate(task) && (scheduled !== undefined || due !== undefined)) {
+		throw new Error("Recurring templates do not store scheduled or due dates");
+	}
+}
 
 interface OccurrenceTemplateResolution {
 	configured: boolean;
@@ -102,6 +118,7 @@ export class TaskService {
 	private autoArchiveService?: AutoArchiveService;
 	private readonly taskCreationService: TaskCreationService;
 	private readonly taskUpdateService: TaskUpdateService;
+	private rollingMaterializationRun: Promise<TaskInfo[]> | null = null;
 
 	constructor(private plugin: TaskNotesPlugin) {
 		this.taskCreationService = new TaskCreationService({
@@ -599,6 +616,11 @@ export class TaskService {
 
 			// Get fresh task data to prevent overwrites
 			const freshTask = (await this.plugin.cacheManager.getTaskInfo(task.path)) || task;
+			assertAutomaticTemplateHasNoDates(
+				freshTask,
+				property === "scheduled" ? value : undefined,
+				property === "due" ? value : undefined
+			);
 
 			// Step 1: Construct new state in memory using fresh data
 			const updatePlan = buildTaskPropertyUpdatePlan({
@@ -749,6 +771,21 @@ export class TaskService {
 		}
 
 		const existingOccurrences = await this.plugin.cacheManager.getAllTasks();
+		const occurrenceOverrides = {
+			planningState: freshParent.planningState,
+			areas: freshParent.areas,
+			goals: freshParent.goals,
+			relations: freshParent.relations,
+			projectSection: freshParent.projectSection,
+			reviewDate: freshParent.reviewDate,
+			...getOccurrenceDateOverrides(
+				freshParent,
+				typeof targetDate === "string"
+					? targetDate
+					: formatDateForStorage(targetDate)
+			),
+			...overrides,
+		};
 		const basePlanInput = {
 			parentTask: freshParent,
 			targetDate,
@@ -757,7 +794,7 @@ export class TaskService {
 			parentLink: this.buildOccurrenceParentReference(freshParent),
 			defaultStatus: this.plugin.settings.defaultTaskStatus,
 			defaultPriority: this.plugin.settings.defaultTaskPriority,
-			overrides,
+			overrides: occurrenceOverrides,
 		};
 		const basePlan = buildMaterializeOccurrencePlan(basePlanInput);
 
@@ -788,6 +825,152 @@ export class TaskService {
 			applyTemplate: !occurrenceTemplate.configured,
 		});
 		return taskInfo;
+	}
+
+	async materializeRollingOccurrences(
+		today = new Date(),
+		parents?: readonly TaskInfo[]
+	): Promise<TaskInfo[]> {
+		if (this.rollingMaterializationRun) {
+			await this.rollingMaterializationRun;
+			return this.materializeRollingOccurrences(today, parents);
+		}
+
+		this.rollingMaterializationRun = (async () => {
+			const allTasks = await this.plugin.cacheManager.getAllTasks();
+			const rollingParents = (parents ?? allTasks).filter(
+				(task) => task.recurrence && task.occurrence_materialization === "rolling"
+			);
+			const created: TaskInfo[] = [];
+			for (const parent of rollingParents) {
+				for (const date of getRollingOccurrenceDates(
+					parent,
+					[...allTasks, ...created],
+					today
+				)) {
+					try {
+						created.push(
+							await this.materializeOccurrence(
+								parent,
+								date,
+								getGeneratedOccurrenceDateOverrides(parent, date)
+							)
+						);
+					} catch (error) {
+						tasknotesLogger.warn("Failed to materialize scheduled occurrence:", {
+							category: "persistence",
+							operation: "materialize-scheduled-occurrence",
+							details: { parentPath: parent.path, date },
+							error,
+						});
+					}
+				}
+			}
+			return created;
+		})().finally(() => {
+			this.rollingMaterializationRun = null;
+		});
+
+		return this.rollingMaterializationRun;
+	}
+
+	private async syncFutureMaterializedOccurrenceDates(
+		parent: TaskInfo,
+		today = new Date()
+	): Promise<void> {
+		const todayDate = formatDateForStorage(today);
+		const occurrences = (await this.plugin.cacheManager.getAllTasks()).filter(
+			(task) =>
+				isOccurrenceOf(task, parent) &&
+				Boolean(task.occurrence_date && task.occurrence_date >= todayDate)
+		);
+		for (const occurrence of occurrences) {
+			const expected = getGeneratedOccurrenceDateOverrides(
+				parent,
+				occurrence.occurrence_date as string
+			);
+			if (occurrence.scheduled === expected.scheduled && occurrence.due === expected.due) {
+				continue;
+			}
+			await this.persistTaskInfoUpdates(
+				occurrence,
+				expected,
+				"sync-generated-occurrence-dates"
+			);
+		}
+	}
+
+	async setOccurrenceMaterializationPolicy(
+		task: TaskInfo,
+		mode: OccurrenceMaterializationMode
+	): Promise<TaskInfo> {
+		const freshTask = (await this.plugin.cacheManager.getTaskInfo(task.path)) || task;
+		if (!freshTask.recurrence) throw new Error("Task is not recurring");
+
+		if (mode === "manual") {
+			const next = getNextUncompletedOccurrence(freshTask);
+			const targetDate = next ? formatDateForStorage(next) : undefined;
+			const restoredDates = targetDate
+				? freshTask.recurrence_start_offset === undefined
+					? { scheduled: targetDate, due: undefined }
+					: getOccurrenceDateOverrides(freshTask, targetDate)
+				: { scheduled: undefined, due: undefined };
+			return this.persistTaskInfoUpdates(
+				freshTask,
+				{
+					occurrence_materialization: undefined,
+					recurrence_start_offset: undefined,
+					...restoredDates,
+				},
+				"disable-occurrence-note-template"
+			);
+		}
+
+		const firstDateValue = freshTask.due || freshTask.scheduled;
+		const firstTarget = firstDateValue ? getDatePart(firstDateValue) : undefined;
+		const converted = buildOccurrenceTemplateConversion(freshTask);
+		const updated = await this.persistTaskInfoUpdates(
+			freshTask,
+			{
+				...converted,
+				occurrence_materialization: mode,
+				recurrence_anchor: mode === "rolling" ? "scheduled" : "completion",
+			},
+			"configure-occurrence-note-template"
+		);
+
+		if (mode === "rolling") {
+			await this.materializeRollingOccurrences(new Date(), [updated]);
+			await this.syncFutureMaterializedOccurrenceDates(updated);
+		} else if (firstTarget) {
+			await this.materializeOccurrence(
+				updated,
+				firstTarget,
+				getGeneratedOccurrenceDateOverrides(updated, firstTarget)
+			);
+			await this.syncFutureMaterializedOccurrenceDates(updated);
+		}
+		return updated;
+	}
+
+	async setRecurrenceStartOffset(task: TaskInfo, days: number | undefined): Promise<TaskInfo> {
+		const freshTask = (await this.plugin.cacheManager.getTaskInfo(task.path)) || task;
+		if (days !== undefined && (!Number.isInteger(days) || days < 0)) {
+			throw new Error("Start offset must be a whole, non-negative number of days");
+		}
+		const offset = days;
+		const updated = await this.persistTaskInfoUpdates(
+			freshTask,
+			{ recurrence_start_offset: offset },
+			"update-recurrence-start-offset"
+		);
+		if (updated.occurrence_materialization !== undefined) {
+			if (updated.occurrence_materialization === "rolling") {
+				await this.materializeRollingOccurrences(new Date(), [updated]);
+			}
+			await this.syncFutureMaterializedOccurrenceDates(updated);
+		}
+		return updated;
 	}
 
 	/**
@@ -905,9 +1088,14 @@ export class TaskService {
 			plan.occurrenceUpdates,
 			"skip-materialized-occurrence"
 		);
+		const parentUpdates =
+			parentTask.occurrence_materialization === "rolling" ||
+			parentTask.occurrence_materialization === "on_completion"
+				? { ...plan.parentUpdates, scheduled: undefined, due: undefined }
+				: plan.parentUpdates;
 		const updatedParent = await this.persistTaskInfoUpdates(
 			parentTask,
-			plan.parentUpdates,
+			parentUpdates,
 			"reconcile-skipped-materialized-occurrence-parent"
 		);
 
@@ -1024,9 +1212,14 @@ export class TaskService {
 			);
 		}
 
+		const parentUpdates =
+			parentTask.occurrence_materialization === "rolling" ||
+			parentTask.occurrence_materialization === "on_completion"
+				? { ...plan.parentUpdates, scheduled: undefined, due: undefined }
+				: plan.parentUpdates;
 		const updatedParent = await this.persistTaskInfoUpdates(
 			parentTask,
-			plan.parentUpdates,
+			parentUpdates,
 			"reconcile-materialized-occurrence-parent"
 		);
 
@@ -1206,6 +1399,11 @@ export class TaskService {
 			} else {
 				frontmatter[operation.field] = operation.value;
 			}
+		}
+		if (Object.prototype.hasOwnProperty.call(updates, "recurrence_start_offset")) {
+			const field = this.plugin.fieldMapper.toUserField("recurrenceStartOffset");
+			if (updates.recurrence_start_offset === undefined) delete frontmatter[field];
+			else frontmatter[field] = updates.recurrence_start_offset;
 		}
 	}
 
@@ -1609,6 +1807,7 @@ export class TaskService {
 		originalTask: TaskInfo,
 		updates: Partial<TaskInfo> & { details?: string }
 	): Promise<TaskInfo> {
+		assertAutomaticTemplateHasNoDates(originalTask, updates.scheduled, updates.due);
 		return this.taskUpdateService.updateTask(originalTask, updates);
 	}
 

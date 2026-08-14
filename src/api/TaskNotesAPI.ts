@@ -220,6 +220,13 @@ const CORE_FIELD_DEFINITIONS: ReadonlyArray<
 		writable: true,
 	},
 	{
+		id: "recurrence_start_offset",
+		label: "Recurrence start offset",
+		valueType: "number",
+		source: "model",
+		writable: true,
+	},
+	{
 		id: "occurrence_next_trigger",
 		label: "Occurrence next trigger",
 		valueType: "string",
@@ -361,6 +368,7 @@ const FIELD_MAPPING_KEY_BY_FIELD_ID: Partial<
 	recurrence_parent: "recurrenceParent",
 	occurrence_date: "occurrenceDate",
 	occurrence_materialization: "occurrenceMaterialization",
+	recurrence_start_offset: "recurrenceStartOffset",
 	occurrence_next_trigger: "occurrenceNextTrigger",
 	occurrence_template: "occurrenceTemplate",
 	occurrence_past_horizon: "occurrencePastHorizon",

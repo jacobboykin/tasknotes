@@ -28,7 +28,8 @@ This reference documents the expected data types for each frontmatter property t
 | skipped_instances | list | `["2025-01-22"]` |
 | recurrence_parent | text (link/path) | `"[[Tasks/Weekly review]]"` |
 | occurrence_date | text (date) | `"2025-01-15"` |
-| occurrence_materialization | text | `"manual"` or `"on_completion"` |
+| occurrence_materialization | text | `"manual"`, `"rolling"`, or `"on_completion"` |
+| recurrence_start_offset | number | `3` (days) |
 | occurrence_next_trigger | text | `"completion"` or `"completion_or_skip"` |
 | occurrence_template | text (link/path) | `"[[Templates/Occurrence]]"` |
 | occurrence_past_horizon | text (duration) | `"P7D"` |
@@ -243,8 +244,14 @@ When an occurrence note is created, TaskNotes inherits parent planning metadata 
 
 - **Type:** text (string)
 - **Valid values:** `"manual"`, `"on_completion"`, `"rolling"`
-- **Description:** Parent task policy for creating occurrence notes. The plugin currently supports manual creation and creating the next note after completion; rolling windows are defined by the spec but are not automated yet.
+- **Description:** Parent task policy for virtual occurrences, independent copies created on schedule (`rolling`), or the next copy created after completion.
 - **Example:** `occurrence_materialization: "on_completion"`
+
+#### recurrence_start_offset
+
+- **Type:** number (whole days)
+- **Description:** Number of days before each recurring deadline that its generated occurrence is scheduled to start.
+- **Example:** `recurrence_start_offset: 3`
 
 #### occurrence_next_trigger
 
@@ -262,7 +269,7 @@ When an occurrence note is created, TaskNotes inherits parent planning metadata 
 #### occurrence_past_horizon and occurrence_future_horizon
 
 - **Type:** text (ISO 8601 duration string)
-- **Description:** Optional rolling-window bounds for occurrence materialization. These fields are part of the TaskNotes spec; automated rolling materialization is not currently enabled in the plugin.
+- **Description:** Optional bounds for automatic scheduled occurrence creation. When omitted, TaskNotes catches up at most 30 past days and creates through today (or far enough ahead to honor `recurrence_start_offset`).
 - **Examples:**
 
   ```yaml

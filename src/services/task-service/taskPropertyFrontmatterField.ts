@@ -22,6 +22,7 @@ const TASK_PROPERTY_FIELD_MAPPING_ALIASES: Partial<Record<keyof TaskInfo, FieldM
 	relations: "relations",
 	projectSection: "projectSection",
 	reviewDate: "reviewDate",
+	recurrence_start_offset: "recurrenceStartOffset",
 };
 
 function isFieldMappingKey(property: PropertyKey, mapping: FieldMapping): property is FieldMappingKey {

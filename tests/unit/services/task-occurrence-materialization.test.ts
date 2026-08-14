@@ -136,6 +136,11 @@ describe("TaskService materialized occurrences", () => {
 			due: "2026-06-02T10:45:00",
 			contexts: ["office"],
 			projects: ["[[Projects/Launch]]"],
+			areas: ["[[Areas/Work]]"],
+			goals: ["[[Goals/Ship]]"],
+			relations: ["[[Notes/Brief]]"],
+			planningState: "anytime",
+			projectSection: "Execution",
 			tags: ["task", "review"],
 			timeEstimate: 45,
 			timeEntries: [
@@ -168,6 +173,11 @@ describe("TaskService materialized occurrences", () => {
 			occurrence_date: "2026-06-08",
 			contexts: ["office"],
 			projects: ["[[Projects/Launch]]"],
+			areas: ["[[Areas/Work]]"],
+			goals: ["[[Goals/Ship]]"],
+			relations: ["[[Notes/Brief]]"],
+			planningState: "anytime",
+			projectSection: "Execution",
 			timeEstimate: 45,
 			reminders: parent.reminders,
 			details: "- [ ] Review notes",
@@ -176,6 +186,138 @@ describe("TaskService materialized occurrences", () => {
 		expect(occurrence.timeEntries).toBeUndefined();
 		expect(occurrence.recurrence).toBeUndefined();
 		expect(plugin.cacheManager.getAllTasks).toHaveBeenCalled();
+	});
+
+	it("passes converted deadline dates into immediate scheduled materialization", async () => {
+		const staleParent = TaskFactory.createTask({
+			title: "Daily deadline",
+			path: "Tasks/Daily deadline.md",
+			recurrence: "DTSTART:20260813;FREQ=DAILY",
+			scheduled: "2026-08-13",
+			due: "2026-08-16",
+		});
+		const templateParent = {
+			...staleParent,
+			recurrence: "DTSTART:20260816;FREQ=DAILY",
+			scheduled: undefined,
+			due: undefined,
+			occurrence_materialization: "rolling" as const,
+			recurrence_start_offset: 3,
+		};
+		const { taskService } = createService({ [staleParent.path]: staleParent });
+		const occurrence = TaskFactory.createTask({
+			title: "Daily deadline",
+			path: "Tasks/Daily deadline-2.md",
+			recurrence_parent: "[[Tasks/Daily deadline]]",
+			occurrence_date: "2026-08-16",
+		});
+		const materialize = jest
+			.spyOn(taskService, "materializeOccurrence")
+			.mockResolvedValue(occurrence);
+
+		await taskService.materializeRollingOccurrences(new Date("2026-08-13T12:00:00"), [
+			templateParent,
+		]);
+
+		expect(materialize).toHaveBeenCalledWith(templateParent, "2026-08-16", {
+			scheduled: "2026-08-13",
+			due: "2026-08-16",
+		});
+	});
+
+	it("keeps converted dates when metadata still returns the old parent", async () => {
+		const parent = TaskFactory.createTask({
+			title: "Daily deadline",
+			path: "Tasks/Daily deadline.md",
+			recurrence: "DTSTART:20260813;FREQ=DAILY",
+			scheduled: "2026-08-13",
+			due: "2026-08-16",
+		});
+		const { taskService, plugin } = createService({ [parent.path]: parent });
+		const createTask = jest
+			.spyOn(taskService, "createTask")
+			.mockImplementation(async (data) => ({
+				file: new TFile("Tasks/Daily deadline-2.md"),
+				taskInfo: {
+					...data,
+					path: "Tasks/Daily deadline-2.md",
+					archived: false,
+				} as TaskInfo,
+			}));
+		(plugin.cacheManager.getTaskInfo as jest.Mock).mockResolvedValue(parent);
+
+		await taskService.setOccurrenceMaterializationPolicy(parent, "rolling");
+
+		expect(createTask.mock.calls[0]?.[0]).toMatchObject({
+			occurrence_date: "2026-08-16",
+			scheduled: "2026-08-13",
+			due: "2026-08-16",
+		});
+	});
+
+	it.each(["rolling", "on_completion"] as const)(
+		"updates future %s occurrence dates when the deadline offset changes",
+		async (mode) => {
+			const parent = TaskFactory.createTask({
+				title: "Daily deadline",
+				path: "Tasks/Daily deadline.md",
+				recurrence: "DTSTART:20260816;FREQ=DAILY",
+				occurrence_materialization: mode,
+				recurrence_start_offset: 3,
+			});
+			const occurrence = TaskFactory.createTask({
+				title: "Daily deadline",
+				path: "Tasks/Daily deadline-2.md",
+				recurrence_parent: "[[Daily deadline]]",
+				occurrence_date: "2026-08-16",
+				scheduled: "2026-08-16",
+				due: "2026-08-19",
+			});
+			const { taskService, frontmatterByPath } = createService({
+				[parent.path]: parent,
+				[occurrence.path]: occurrence,
+			});
+
+			await taskService.setRecurrenceStartOffset(parent, 2);
+
+			expect(frontmatterByPath.get(occurrence.path)).toMatchObject({
+				scheduled: "2026-08-14",
+				due: "2026-08-16",
+			});
+		}
+	);
+
+	it("rejects dates on an automatic recurrence template", async () => {
+		const parent = TaskFactory.createTask({
+			path: "Tasks/Daily deadline.md",
+			recurrence: "DTSTART:20260816;FREQ=DAILY",
+			occurrence_materialization: "rolling",
+		});
+		const { taskService } = createService({ [parent.path]: parent });
+
+		await expect(taskService.updateProperty(parent, "due", "2026-08-16")).rejects.toThrow(
+			"Recurring templates do not store scheduled or due dates"
+		);
+		await expect(taskService.updateTask(parent, { scheduled: "2026-08-13" })).rejects.toThrow(
+			"Recurring templates do not store scheduled or due dates"
+		);
+	});
+
+	it("restores a scheduled date when switching a template back to virtual", async () => {
+		const parent = TaskFactory.createTask({
+			path: "Tasks/Daily deadline.md",
+			recurrence: "DTSTART:20260816;FREQ=DAILY",
+			occurrence_materialization: "rolling",
+			recurrence_start_offset: 3,
+		});
+		const { taskService, frontmatterByPath } = createService({ [parent.path]: parent });
+
+		await taskService.setOccurrenceMaterializationPolicy(parent, "manual");
+
+		expect(frontmatterByPath.get(parent.path)).toMatchObject({
+			scheduled: "2026-08-13",
+			due: "2026-08-16",
+		});
 	});
 
 	it("uses a parent occurrence_template for occurrence note frontmatter and body", async () => {
@@ -497,15 +639,15 @@ describe("TaskService materialized occurrences", () => {
 		expect(frontmatterByPath.get(parent.path)).toMatchObject({
 			complete_instances: ["2026-07-28"],
 			recurrence: "DTSTART:20260730;FREQ=WEEKLY",
-			scheduled: "2026-08-06",
 		});
+		expect(frontmatterByPath.get(parent.path)?.scheduled).toBeUndefined();
 
 		await taskService.updateProperty(completedOccurrence, "status", "open");
 
 		expect(frontmatterByPath.get(parent.path)).toMatchObject({
 			recurrence: "DTSTART:20260730;FREQ=WEEKLY",
-			scheduled: "2026-08-06",
 		});
+		expect(frontmatterByPath.get(parent.path)?.scheduled).toBeUndefined();
 		expect(frontmatterByPath.get(parent.path)?.complete_instances).toBeUndefined();
 	});
 

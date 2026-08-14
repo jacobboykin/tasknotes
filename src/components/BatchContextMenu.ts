@@ -19,6 +19,7 @@ import {
 	removeTagsFromList,
 } from "../utils/taskTagList";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
+import { isAutomaticOccurrenceTemplate } from "../services/task-service/rollingOccurrencePlanning";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Components/BatchContextMenu" });
 
@@ -63,6 +64,10 @@ export class BatchContextMenu {
 	private buildMenu(): void {
 		const { selectedPaths } = this.options;
 		const count = selectedPaths.length;
+		const includesAutomaticTemplate = selectedPaths.some((path) => {
+			const task = this.options.plugin.cacheManager.getCachedTaskInfoSync(path);
+			return Boolean(task && isAutomaticOccurrenceTemplate(task));
+		});
 
 		// Header showing selection count
 		this.menu.addItem((item) => {
@@ -106,6 +111,7 @@ export class BatchContextMenu {
 			item.setIcon("inbox");
 			const submenu = getSubmenu(item);
 			for (const option of ["inbox", "today", "anytime", "someday"] as const) {
+				if (option === "today" && includesAutomaticTemplate) continue;
 				submenu.addItem((subItem) => {
 					subItem
 						.setTitle(this.t(`contextMenus.task.planning.${option}`))
@@ -119,23 +125,25 @@ export class BatchContextMenu {
 			}
 		});
 
-		// Due Date submenu
-		this.menu.addItem((item) => {
+		if (!includesAutomaticTemplate) {
+			// Due Date submenu
+			this.menu.addItem((item) => {
 			item.setTitle(this.t("contextMenus.task.dueDate"));
 			item.setIcon("calendar");
 
 			const submenu = getSubmenu(item);
 			this.addDateOptions(submenu, "due");
-		});
+			});
 
-		// Scheduled Date submenu
-		this.menu.addItem((item) => {
+			// Scheduled Date submenu
+			this.menu.addItem((item) => {
 			item.setTitle(this.t("contextMenus.task.scheduledDate"));
 			item.setIcon("calendar-clock");
 
 			const submenu = getSubmenu(item);
 			this.addDateOptions(submenu, "scheduled");
-		});
+			});
+		}
 
 		this.menu.addSeparator();
 

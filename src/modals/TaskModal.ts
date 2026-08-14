@@ -569,8 +569,12 @@ export abstract class TaskModal extends Modal {
 		return createTaskModalActionIcons(container, this.getCoreActionIconSpecs());
 	}
 
+	protected allowsDateEditing(): boolean {
+		return true;
+	}
+
 	protected getCoreActionIconSpecs(): TaskModalActionIconSpec[] {
-		return [
+		const specs: TaskModalActionIconSpec[] = [
 			{
 				iconName: "dot-square",
 				tooltip: this.t("modals.task.actions.status"),
@@ -620,6 +624,9 @@ export abstract class TaskModal extends Modal {
 				dataType: "reminders",
 			},
 		];
+		return this.allowsDateEditing()
+			? specs
+			: specs.filter((spec) => spec.dataType !== "due-date" && spec.dataType !== "scheduled-date");
 	}
 
 	protected createActionIcon(
@@ -786,6 +793,7 @@ export abstract class TaskModal extends Modal {
 			container,
 			planningState: this.planningState,
 			scheduledDate: this.scheduledDate,
+			allowToday: this.allowsDateEditing(),
 			onChange: (planningState, scheduledDate) => {
 				this.planningState = planningState;
 				this.scheduledDate = scheduledDate;

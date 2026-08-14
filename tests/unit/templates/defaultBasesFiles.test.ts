@@ -11,6 +11,7 @@ const createMockPlugin = (settingsOverride: Record<string, unknown> = {}) => {
 		recurrence: "recurrence",
 		recurrenceParent: "recurrence_parent",
 		occurrenceDate: "occurrence_date",
+		occurrenceMaterialization: "occurrence_materialization",
 		completeInstances: "complete_instances",
 		blockedBy: "blockedBy",
 		sortOrder: "tasknotes_manual_order",
@@ -84,6 +85,7 @@ describe("defaultBasesFiles", () => {
 			'date(due).format("YYYY-MM-DD") <= today().format("YYYY-MM-DD")'
 		);
 		expect(template).toContain('file.hasTag("archived")');
+		expect(template).toContain('occurrence_materialization == "manual"');
 	});
 
 	it("adds manual-order sorting to relationship views that render tasks", () => {

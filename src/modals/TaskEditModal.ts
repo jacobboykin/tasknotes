@@ -19,6 +19,7 @@ import { buildTaskEditChangesFromModalState } from "./taskEditChangeState";
 import { buildTaskEditFormStateFromTask } from "./taskEditFormState";
 import { applyTaskEditSubtaskChanges, hasTaskEditSubtaskChanges } from "./taskEditSubtasks";
 import { createTaskNotesLogger } from "../utils/tasknotesLogger";
+import { isAutomaticOccurrenceTemplate } from "../services/task-service/rollingOccurrencePlanning";
 
 const tasknotesLogger = createTaskNotesLogger({ tag: "Modals/TaskEditModal" });
 
@@ -60,6 +61,10 @@ export class TaskEditModal extends TaskModal {
 
 	protected isEditMode(): boolean {
 		return true;
+	}
+
+	protected allowsDateEditing(): boolean {
+		return !isAutomaticOccurrenceTemplate(this.task);
 	}
 
 	protected focusTitleInput(): void {

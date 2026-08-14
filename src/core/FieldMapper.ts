@@ -91,6 +91,9 @@ export class FieldMapper {
 		mapped.relations = normalizeStringList(frontmatterRecord[this.mapping.relations]);
 		mapped.projectSection = normalizeOptionalString(frontmatterRecord[this.mapping.projectSection]);
 		mapped.reviewDate = normalizeOptionalString(frontmatterRecord[this.mapping.reviewDate]);
+		mapped.recurrence_start_offset = normalizeOptionalNumber(
+			frontmatterRecord[this.mapping.recurrenceStartOffset]
+		);
 		return mapped;
 	}
 
@@ -117,6 +120,9 @@ export class FieldMapper {
 		if (taskData.relations?.length) frontmatter[this.mapping.relations] = taskData.relations;
 		if (taskData.projectSection) frontmatter[this.mapping.projectSection] = taskData.projectSection;
 		if (taskData.reviewDate) frontmatter[this.mapping.reviewDate] = taskData.reviewDate;
+		if (taskData.recurrence_start_offset !== undefined) {
+			frontmatter[this.mapping.recurrenceStartOffset] = taskData.recurrence_start_offset;
+		}
 		return frontmatter;
 	}
 
@@ -230,4 +236,12 @@ function normalizeStringList(value: unknown): string[] | undefined {
 		.map(normalizeOptionalString)
 		.filter((item): item is string => item !== undefined);
 	return normalized.length ? normalized : undefined;
+}
+
+function normalizeOptionalNumber(value: unknown): number | undefined {
+	if (typeof value === "number" && Number.isFinite(value)) return value;
+	if (typeof value === "string" && value.trim() && Number.isFinite(Number(value))) {
+		return Number(value);
+	}
+	return undefined;
 }

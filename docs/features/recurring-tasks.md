@@ -1,19 +1,18 @@
 # Recurring Tasks
 
-
-TaskNotes recurring tasks use RFC 5545 RRule strings with `DTSTART` support and dynamic next-occurrence scheduling. The model separates recurrence patterns from the next planned instance, and can also create normal task notes for individual occurrences when an instance needs its own content.
+TaskNotes recurring tasks use RFC 5545 RRule strings with `DTSTART` support. A series can stay as one virtual task, create the next task after completion, or create independent task notes on the schedule whether earlier copies are finished or not.
 
 If you are new to recurring tasks in TaskNotes, think of the recurrence rule as the long-term plan and the `scheduled` field as the next concrete commitment. Most day-to-day editing affects `scheduled`, while recurrence editing changes the plan itself.
 
 ## Core Concepts
 
-Recurring tasks operate on two independent levels:
+Recurring tasks operate on three independent levels:
 
 1. **Recurring Pattern**: Defines when pattern instances appear (controlled by `DTSTART` in the recurrence rule)
 2. **Next Occurrence**: The specific date/time when you plan to work on the next instance (controlled by the `scheduled` field)
 3. **Materialized Occurrence Notes**: Optional child task notes for specific occurrence dates, used when an occurrence needs its own checklist, status, time tracking, or body content
 
-This separation lets you reschedule the next occurrence without changing the pattern.
+This separation lets you reschedule one occurrence without changing the pattern or the other copies.
 
 ## Setting Up Recurring Tasks
 
@@ -29,10 +28,12 @@ You can create recurring tasks through:
 
 ### Required Components
 
-Recurring tasks require:
+Virtual recurring tasks require:
 
 - **Recurrence Rule**: RRule string with `DTSTART`
 - **Scheduled Date**: Next occurrence date (independent from the pattern)
+
+For **Repeat on schedule** and **Repeat after completion**, the recurring parent becomes a visible template: it keeps the recurrence and organization fields, but its `scheduled` and `due` dates move to the generated occurrence notes. The template remains visible in its project, area, and **All Tasks**; execution views such as Today and Upcoming show the generated copies.
 
 Materialized occurrence notes add two system fields to the occurrence note:
 
@@ -48,7 +49,7 @@ Materialized occurrence notes add two system fields to the occurrence note:
 
 ## Recurring Task Due Date
 
-When a recurring task is completed, `scheduled` advances to the next occurrence. By default, `due` does not change.
+For virtual recurring tasks, completing an instance advances `scheduled` to the next occurrence. By default, `due` does not change.
 
 Enable `Maintain due date offset in recurring tasks` in **Settings → TaskNotes → Features → Recurring Tasks** to preserve due/scheduled spacing.
 
@@ -81,7 +82,7 @@ DTSTART:20250801T100000Z;FREQ=MONTHLY;BYDAY=-1FR
 → Last Friday of each month at 10:00 AM, starting August 1, 2025
 ```
 
-## Dynamic Scheduled Dates
+## Dynamic Scheduled Dates for Virtual Tasks
 
 The `scheduled` field automatically tracks the next uncompleted occurrence:
 
@@ -94,7 +95,7 @@ This behavior keeps recurring tasks practical in real planning: you can preserve
 
 ## Materialized Occurrence Notes
 
-Most recurring tasks can remain virtual: the parent task stores `complete_instances` and `skipped_instances`, and TaskNotes renders each calendar/list instance from that parent. Materialized occurrence notes are for heavier instances where the date-specific work needs its own note.
+Recurring tasks can remain virtual: the parent task stores `complete_instances` and `skipped_instances`, and TaskNotes renders each calendar/list instance from that parent. Materialized occurrence notes make every date-specific copy an ordinary task note.
 
 Good uses include:
 
@@ -115,7 +116,7 @@ scheduled: "2026-06-01T09:30"
 timeEstimate: 45
 ```
 
-When TaskNotes creates an occurrence note, it copies the parent fields that describe how that instance should be planned: title, priority, scheduled time, due offset, contexts, projects, tags, reminders, dependencies, details, custom properties, and time estimate. Date-like fields are rebased onto the occurrence date, so a parent scheduled at `09:30` creates an occurrence scheduled at `09:30` on the selected date, and a due date one day after the parent scheduled date stays one day after the occurrence scheduled date.
+When TaskNotes creates an occurrence note, it copies the parent fields that describe how that instance should be planned: title, priority, planning state, project section, areas, goals, relations, contexts, projects, tags, reminders, dependencies, details, custom properties, and time estimate. Date-like fields are rebased onto the occurrence date.
 
 Occurrence notes can use a separate template from regular new tasks. Set `occurrence_template` on the recurring parent to point at a template note, or configure **Settings → Features → Body template → Occurrence note template file** as a global fallback. Parent-level `occurrence_template` wins over the global fallback. If neither occurrence-specific template is configured, occurrence note creation keeps the normal body template behavior.
 
@@ -145,11 +146,21 @@ Leaving the global template empty preserves the existing filename behavior. Task
 
 Each recurring parent has an **Occurrence notes** submenu under its recurrence menu:
 
-- **Create manually**: occurrence notes are only created by explicit action.
-- **Create next after completion**: after you complete a materialized occurrence note, TaskNotes creates the next occurrence note.
-- **Rolling window**: defined by the TaskNotes spec, but not automated in the plugin yet.
+- **Virtual occurrences**: one parent task represents the series. Completing an instance advances its next scheduled date.
+- **Repeat on schedule**: TaskNotes creates each occurrence as an independent task on its scheduled date, even when an earlier copy is unfinished.
+- **Repeat after completion**: completing the current occurrence creates the next occurrence, calculated from the completion date.
 
-When **Create next after completion** is enabled, creating the first occurrence is still a deliberate action. After that, completing the occurrence note advances the parent recurrence state and materializes the next scheduled occurrence.
+Enabling either automatic mode converts the recurring task into a visible template and creates the first eligible copy. TaskNotes checks scheduled series on startup and when the date changes. Creation is idempotent, so reloading does not duplicate a copy. If the vault was closed, TaskNotes creates every missed copy since the latest generated occurrence.
+
+### Start Before the Deadline
+
+Automatic series can repeat by deadline while making each copy available earlier:
+
+1. Give the original recurring task a first **Start** (`scheduled`) date and **Deadline** (`due`) date.
+2. Choose **Recurrence → Occurrence notes → Repeat on schedule** (or **Repeat after completion**).
+3. Under **Occurrence notes**, choose **Start N days before deadline** and enter the lead time.
+
+TaskNotes moves the recurrence anchor to the deadline, stores the lead time in `recurrence_start_offset`, and clears dates from the visible template. Each generated copy receives both dates. For example, a weekly Friday deadline with a three-day lead creates a task scheduled Tuesday and due Friday.
 
 HTTP API and MCP clients can create occurrence notes without using the desktop context menu. Use `POST /api/tasks/:id/materialize-occurrence` or the MCP `tasknotes_materialize_occurrence` tool with a parent task path and occurrence date. Completing a recurring instance through the API or MCP also respects existing occurrence notes and the **Create next after completion** policy.
 
@@ -167,8 +178,9 @@ When a materialized occurrence note is completed, TaskNotes updates both sides o
 - The occurrence note is completed like a normal task.
 - The parent adds the occurrence date to `complete_instances`.
 - The parent removes that date from `skipped_instances` if needed.
-- The parent recalculates `scheduled` to the next uncompleted occurrence.
-- If the parent policy is **Create next after completion**, TaskNotes creates the next occurrence note idempotently.
+- Virtual parents recalculate `scheduled` to the next uncompleted occurrence.
+- **Repeat after completion** parents create the next occurrence note idempotently.
+- **Repeat on schedule** parents leave existing copies alone; completion never controls whether the next scheduled copy is created.
 
 Uncompleting an occurrence note removes the date from the parent's `complete_instances` list, but it does not delete later occurrence notes that were already created.
 

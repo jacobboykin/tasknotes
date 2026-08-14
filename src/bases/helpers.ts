@@ -187,6 +187,7 @@ function createTaskInfoFromProperties(
 		"recurrence_parent",
 		"occurrence_date",
 		"occurrence_materialization",
+		"recurrence_start_offset",
 		"occurrence_next_trigger",
 		"occurrence_template",
 		"occurrence_past_horizon",
@@ -255,6 +256,7 @@ function createTaskInfoFromProperties(
 		occurrence_materialization: toOccurrenceMaterializationMode(
 			props.occurrence_materialization
 		),
+		recurrence_start_offset: toOptionalNumber(props.recurrence_start_offset),
 		occurrence_next_trigger: toOccurrenceNextTrigger(props.occurrence_next_trigger),
 		occurrence_template: toOptionalString(props.occurrence_template),
 		occurrence_past_horizon: toOptionalString(props.occurrence_past_horizon),

@@ -2,6 +2,7 @@ import { MarkdownView, Platform, addIcon } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import type TaskNotesPlugin from "../main";
 import {
+	EVENT_DATE_CHANGED,
 	EVENT_TASK_UPDATED,
 	POMODORO_STATS_VIEW_TYPE,
 	POMODORO_VIEW_TYPE,
@@ -372,6 +373,17 @@ export async function initializeAfterLayoutReady(plugin: TaskNotesPlugin): Promi
 		registerEditorIntegrations(plugin);
 
 		plugin.cacheManager.initialize();
+		const materializeScheduledOccurrences = () =>
+			plugin.taskService.materializeRollingOccurrences().catch((error) => {
+				tasknotesLogger.warn("Failed to materialize scheduled recurring occurrences:", {
+					category: "persistence",
+					operation: "materialize-scheduled-recurring-occurrences",
+					error,
+				});
+			});
+		plugin.registerEvent(
+			plugin.emitter.on(EVENT_DATE_CHANGED, materializeScheduledOccurrences)
+		);
 		plugin.dependencyCache.initialize();
 		plugin.filterService.initialize();
 		plugin.statusBarService.initialize();
@@ -384,6 +396,7 @@ export async function initializeAfterLayoutReady(plugin: TaskNotesPlugin): Promi
 		plugin.emitter.trigger(TASKNOTES_RUNTIME_LIFECYCLE_RAW_EVENTS["layout.ready"], {
 			timestamp: new Date().toISOString(),
 		});
+		void materializeScheduledOccurrences();
 	} catch (error) {
 		tasknotesLogger.error("Error during post-layout initialization:", {
 			category: "internal",

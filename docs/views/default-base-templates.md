@@ -27,7 +27,7 @@ When task identification uses a property instead of a tag, generated filters ref
 
 ## Planning and organization defaults
 
-The tasks Base includes Inbox, Today, Upcoming, Anytime, Someday, and Logbook views. The entities Base provides Projects, Areas, Goals, and Review tables, while the relationships Base resolves project, area, goal, and general relations in both directions. These templates use the configured field mappings; run **TaskNotes: Update default base files** to add them to an existing vault.
+The tasks Base includes Inbox, Today, Upcoming, Anytime, Someday, and Logbook views. Date-less recurrence templates for automatic series stay visible in **All Tasks** and their project/area views, while execution views show their generated occurrence copies. The entities Base provides Projects, Areas, Goals, and Review tables, while the relationships Base resolves project, area, goal, and general relations in both directions. These templates use the configured field mappings; run **TaskNotes: Update default base files** to add them to an existing vault.
 
 ## Included formulas
 
@@ -251,7 +251,7 @@ views:
 
 Used by the **Tasks** command to display filtered task views.
 
-This template includes multiple views: Manual Order, All Tasks, Not Blocked, Today, Overdue, This Week, and Unscheduled. The Manual Order view groups by status and sorts by the manual-order property so drag-to-reorder works immediately in new bases. The default property name is `tasknotes_manual_order`. The remaining views keep their existing date- and urgency-focused defaults. Each filtered view (except All Tasks) filters for incomplete tasks, handling both recurring and non-recurring tasks. For recurring tasks, the generated filters normalize `complete_instances` values before checking today's date, and missing values are treated as "not completed today" so newly created recurring tasks still appear by default. The "Not Blocked" view additionally filters for tasks that are ready to work on (no incomplete blocking dependencies).
+This template includes Manual Order, All Tasks, Inbox, Today, Upcoming, Anytime, Someday, Logbook, Not Blocked, Overdue, This Week, and Unscheduled views. The Manual Order view groups by status and sorts by the manual-order property so drag-to-reorder works immediately in new bases. The default property name is `tasknotes_manual_order`. Each execution view filters out automatic recurrence templates; those templates remain available in All Tasks while their generated occurrence notes appear in actionable views. Filtered active views also handle completion for both recurring and non-recurring tasks. The "Not Blocked" view additionally filters for tasks that are ready to work on (no incomplete blocking dependencies).
 The default views cover common review horizons and can be kept, removed, or cloned with modified filters.
 
 ```yaml
@@ -305,9 +305,57 @@ views:
       - column: due
         direction: ASC
   - type: tasknotesTaskList
+    name: "Inbox"
+    filters:
+      and:
+        - or:
+          - occurrence_materialization.isEmpty()
+          - occurrence_materialization == "manual"
+        - planning == "inbox"
+  - type: tasknotesTaskList
+    name: "Upcoming"
+    filters:
+      and:
+        - or:
+          - occurrence_materialization.isEmpty()
+          - occurrence_materialization == "manual"
+        - planning != "inbox"
+        - planning != "someday"
+        - or:
+          - scheduled > today()
+          - due > today()
+  - type: tasknotesTaskList
+    name: "Anytime"
+    filters:
+      and:
+        - or:
+          - occurrence_materialization.isEmpty()
+          - occurrence_materialization == "manual"
+        - or:
+          - planning.isEmpty()
+          - planning == "anytime"
+        - scheduled.isEmpty()
+  - type: tasknotesTaskList
+    name: "Someday"
+    filters:
+      and:
+        - or:
+          - occurrence_materialization.isEmpty()
+          - occurrence_materialization == "manual"
+        - planning == "someday"
+  - type: tasknotesTaskList
+    name: "Logbook"
+    filters:
+      or:
+        - file.hasTag("archived")
+        - status == "done"
+  - type: tasknotesTaskList
     name: "Not Blocked"
     filters:
       and:
+        - or:
+          - occurrence_materialization.isEmpty()
+          - occurrence_materialization == "manual"
         # Incomplete tasks
         - or:
           # Non-recurring task that's not in any completed status
@@ -344,6 +392,9 @@ views:
     name: "Today"
     filters:
       and:
+        - or:
+          - occurrence_materialization.isEmpty()
+          - occurrence_materialization == "manual"
         # Incomplete tasks (handles both recurring and non-recurring)
         - or:
           # Non-recurring task that's not in any completed status
@@ -382,6 +433,9 @@ views:
     name: "Overdue"
     filters:
       and:
+        - or:
+          - occurrence_materialization.isEmpty()
+          - occurrence_materialization == "manual"
         # Incomplete tasks
         - or:
           # Non-recurring task that's not in any completed status
@@ -420,6 +474,9 @@ views:
     name: "This Week"
     filters:
       and:
+        - or:
+          - occurrence_materialization.isEmpty()
+          - occurrence_materialization == "manual"
         # Incomplete tasks
         - or:
           # Non-recurring task that's not in any completed status
@@ -460,6 +517,9 @@ views:
     name: "Unscheduled"
     filters:
       and:
+        - or:
+          - occurrence_materialization.isEmpty()
+          - occurrence_materialization == "manual"
         # Incomplete tasks
         - or:
           # Non-recurring task that's not in any completed status

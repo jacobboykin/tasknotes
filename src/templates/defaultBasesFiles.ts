@@ -694,6 +694,7 @@ ${orderYaml}
 			const blockedByProperty = mapPropertyToBasesProperty('blockedBy', plugin);
 			const sortOrderProperty = mapPropertyToBasesProperty('sortOrder', plugin);
 			const planningProperty = mapPropertyToBasesProperty('planningState', plugin);
+			const occurrenceMaterializationProperty = mapPropertyToBasesProperty('occurrenceMaterialization', plugin);
 			const archiveTag = settings.fieldMapping?.archiveTag || "archived";
 			const dueHasValue = `${dueProperty}.isEmpty() == false`;
 			const scheduledHasValue = `${scheduledProperty}.isEmpty() == false`;
@@ -701,6 +702,9 @@ ${orderYaml}
 			const weekEndDay = getBasesWeekEndDayExpression();
 			const dueDay = formatBasesDateDayExpression(dueProperty);
 			const scheduledDay = formatBasesDateDayExpression(scheduledProperty);
+			const executionTaskFilter = `        - or:
+          - ${occurrenceMaterializationProperty}.isEmpty()
+          - ${occurrenceMaterializationProperty} == "manual"`;
 
 			// Get all completed status values
 			const completedStatuses = settings.customStatuses
@@ -751,6 +755,7 @@ ${orderYaml}
     name: "Inbox"
     filters:
       and:
+${executionTaskFilter}
         - ${planningProperty} == "inbox"
         - or:
           - and:
@@ -768,6 +773,7 @@ ${orderYaml}
     name: "Today"
     filters:
       and:
+${executionTaskFilter}
         - ${planningProperty} != "inbox"
         - ${planningProperty} != "someday"
         - or:
@@ -793,6 +799,7 @@ ${orderYaml}
     name: "Upcoming"
     filters:
       and:
+${executionTaskFilter}
         - ${planningProperty} != "inbox"
         - ${planningProperty} != "someday"
         - or:
@@ -824,6 +831,7 @@ ${orderYaml}
     name: "Anytime"
     filters:
       and:
+${executionTaskFilter}
         - or:
           - ${planningProperty}.isEmpty()
           - ${planningProperty} == "anytime"
@@ -847,6 +855,7 @@ ${orderYaml}
     name: "Someday"
     filters:
       and:
+${executionTaskFilter}
         - ${planningProperty} == "someday"
         - or:
           - and:
@@ -875,6 +884,7 @@ ${orderYaml}
     name: "Not Blocked"
     filters:
       and:
+${executionTaskFilter}
         # Incomplete tasks
         - or:
           # Non-recurring task that's not in any completed status
@@ -900,6 +910,7 @@ ${orderYaml}
     name: "Overdue"
     filters:
       and:
+${executionTaskFilter}
         # Incomplete tasks
         - or:
           # Non-recurring task that's not in any completed status
@@ -927,6 +938,7 @@ ${orderYaml}
     name: "This Week"
     filters:
       and:
+${executionTaskFilter}
         # Incomplete tasks
         - or:
           # Non-recurring task that's not in any completed status
@@ -956,6 +968,7 @@ ${orderYaml}
     name: "Unscheduled"
     filters:
       and:
+${executionTaskFilter}
         # Incomplete tasks
         - or:
           # Non-recurring task that's not in any completed status
