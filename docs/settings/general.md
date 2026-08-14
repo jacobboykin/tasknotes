@@ -42,7 +42,7 @@ If your task identification tag is `task` and a task has the tags `#task`, `#tas
 
 ## Folder Management
 
-Use **Excluded folders** to omit paths from Notes tab indexing and keep large archive areas out of regular task browsing.
+Use **Excluded folders** to omit paths from Notes tab indexing, relationship suggestions, and generated entity views. This keeps templates and large archive areas out of regular task browsing.
 
 ## Views & Base Files
 

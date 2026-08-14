@@ -5,6 +5,7 @@ import { calculateDefaultDate, sanitizeTags } from "../utils/helpers";
 import { filterTagsForTaskModalSuggestions } from "../utils/taskTagFiltering";
 import { TaskModalChipInput } from "./taskModalChipInput";
 import { generateLink, getProjectDisplayName } from "../utils/linkUtils";
+import { isPathInExcludedFolder, parseExcludedFolders } from "../utils/pathExclusions";
 
 export interface TaskModalMetadataFieldContext {
 	app: App;
@@ -200,9 +201,11 @@ function getEntityLinkSuggestions(
 	type?: "area" | "goal"
 ): string[] {
 	const sourcePath = context.app.workspace.getActiveFile()?.path || "";
+	const excludedFolders = parseExcludedFolders(context.plugin.settings.excludedFolders);
 	return context.app.vault
 		.getMarkdownFiles()
 		.filter((file) => {
+			if (isPathInExcludedFolder(file.path, excludedFolders)) return false;
 			if (!type) return file.path !== sourcePath;
 			return context.app.metadataCache.getFileCache(file)?.frontmatter?.tasknotesType === type;
 		})

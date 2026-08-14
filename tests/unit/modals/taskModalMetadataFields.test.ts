@@ -89,6 +89,7 @@ jest.mock("../../../src/utils/helpers", () => ({
 import type TaskNotesPlugin from "../../../src/main";
 import {
 	createTaskModalContextsField,
+	createTaskModalGoalsField,
 	createTaskModalTagsField,
 	createTaskModalTimeEstimateField,
 	parseTaskModalTimeEstimate,
@@ -187,5 +188,33 @@ describe("taskModalMetadataFields", () => {
 		expect(parseTaskModalTimeEstimate("60")).toBe(60);
 		expect(parseTaskModalTimeEstimate("")).toBe(0);
 		expect(parseTaskModalTimeEstimate("later")).toBe(0);
+	});
+
+	it("excludes configured folders from entity suggestions", () => {
+		const goal = { path: "Goals/Real Goal.md" };
+		const template = { path: "Templates/Goal Template.md" };
+		const context = {
+			...createContext(),
+			app: {
+				workspace: { getActiveFile: () => null },
+				vault: { getMarkdownFiles: () => [goal, template] },
+				metadataCache: {
+					getFileCache: () => ({ frontmatter: { tasknotesType: "goal" } }),
+					fileToLinktext: (file: { path: string }) => file.path.replace(/\.md$/, ""),
+				},
+			} as never,
+			plugin: {
+				settings: { excludedFolders: "Templates", useFrontmatterMarkdownLinks: false },
+			} as TaskNotesPlugin,
+		};
+
+		createTaskModalGoalsField(context, {
+			container: document.createElement("div"),
+			value: "",
+			onChange: jest.fn(),
+		});
+
+		const getSuggestions = mockChipInput.mock.calls[0][0].getSuggestions as () => string[];
+		expect(getSuggestions()).toEqual(["[[Goals/Real Goal]]"]);
 	});
 });

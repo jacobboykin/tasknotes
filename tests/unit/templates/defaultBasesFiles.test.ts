@@ -138,7 +138,10 @@ describe("defaultBasesFiles", () => {
 	});
 
 	it("creates a first-class project, area, goal, and review workspace", () => {
-		const template = generateBasesFileTemplate("open-entities-view", createMockPlugin() as any);
+		const template = generateBasesFileTemplate(
+			"open-entities-view",
+			createMockPlugin({ excludedFolders: "Templates" }) as any
+		);
 
 		for (const [name, type] of [
 			["Projects", "project"],
@@ -152,6 +155,7 @@ describe("defaultBasesFiles", () => {
 		expect(template).toContain(
 			'date(note.review).format("YYYY-MM-DD") <= today().format("YYYY-MM-DD")'
 		);
+		expect((template.match(/file\.inFolder\("Templates"\) != true/g) ?? []).length).toBe(4);
 	});
 
 	it("adds materialized occurrence notes to the relationships template", () => {

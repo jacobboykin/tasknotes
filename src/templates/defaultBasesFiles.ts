@@ -1079,7 +1079,10 @@ ${agendaOrderYaml}
 		case 'pomodoro-stats-base':
 			return generatePomodoroStatsTemplate(plugin);
 
-		case 'open-entities-view':
+		case 'open-entities-view': {
+			const excludedFoldersYaml = excludedFolderFilterConditions
+				.map((condition) => `        - ${condition}\n`)
+				.join("");
 			return `# Projects, Areas & Goals
 
 views:
@@ -1087,7 +1090,7 @@ views:
     name: "Projects"
     filters:
       and:
-        - note.tasknotesType == "project"
+${excludedFoldersYaml}        - note.tasknotesType == "project"
     order:
       - file.name
       - note.status
@@ -1099,7 +1102,7 @@ views:
     name: "Areas"
     filters:
       and:
-        - note.tasknotesType == "area"
+${excludedFoldersYaml}        - note.tasknotesType == "area"
     order:
       - file.name
       - note.status
@@ -1109,7 +1112,7 @@ views:
     name: "Goals"
     filters:
       and:
-        - note.tasknotesType == "goal"
+${excludedFoldersYaml}        - note.tasknotesType == "goal"
     order:
       - file.name
       - note.status
@@ -1119,7 +1122,7 @@ views:
     name: "Review"
     filters:
       and:
-        - list("project", "area", "goal").contains(note.tasknotesType)
+${excludedFoldersYaml}        - list("project", "area", "goal").contains(note.tasknotesType)
         - note.review.isEmpty() == false
         - date(note.review).format("YYYY-MM-DD") <= today().format("YYYY-MM-DD")
     order:
@@ -1131,6 +1134,7 @@ views:
       - column: note.review
         direction: ASC
 `;
+		}
 
 			case 'relationships': {
 				// Unified relationships widget that shows all relationship types

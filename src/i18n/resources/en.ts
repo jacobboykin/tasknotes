@@ -969,7 +969,7 @@ export const en: TranslationTree = {
 				excludedFolders: {
 					name: "Excluded folders",
 					description:
-						"Comma-separated list of folders to exclude from task indexing and project suggestions",
+						"Comma-separated list of folders to exclude from task indexing and relationship suggestions",
 				},
 			},
 			frontmatter: {
