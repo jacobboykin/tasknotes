@@ -4,7 +4,11 @@ Welcome to the TaskNotes release notes. Here you can find detailed information a
 
 ## Latest Releases
 
-### Version 4.x (Current)
+### Version 2026.x (Current)
+
+- [2026.8.1](releases/2026.8.1.md)
+
+### Version 4.x
 
 - [4.12.3](releases/4.12.3.md)
 - [4.12.2](releases/4.12.2.md)

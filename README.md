@@ -2,6 +2,18 @@
 
 A task management plugin where each task is a separate Markdown note, and all views are powered by [Obsidian Bases](https://help.obsidian.md/bases).
 
+> [!NOTE]
+> This is Jacob Boykin's public TaskNotes fork. It keeps the upstream `tasknotes` plugin ID for companion-plugin compatibility, so do not enable it alongside the Community Plugins version.
+
+## Install this fork
+
+1. Install **BRAT** from Obsidian's Community Plugins browser.
+2. Run **BRAT: Add a beta plugin with frozen version based on a release tag**.
+3. Enter `jacobboykin/tasknotes` and choose release `2026.8.1`.
+4. Enable **TaskNotes (Jacob Fork)** in Community Plugins.
+
+Frozen BRAT releases update only when you choose a newer fork release. The fork uses calendar versions above upstream's current version line so Obsidian does not offer the vanilla plugin as an upgrade.
+
 <img src="https://github.com/callumalpass/tasknotes/blob/main/media/2025-12-07T15-43-26.png?raw=true" />
 
 ## Overview

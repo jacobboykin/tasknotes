@@ -923,7 +923,7 @@ export const ko: TranslationTree = {
 				header: "폴더 관리",
 				excludedFolders: {
 					name: "제외 폴더",
-					description: "작업 인덱싱 및 프로젝트 제안에서 제외할 폴더 (쉼표로 구분)"
+					description: "작업 인덱싱 및 관계 제안에서 제외할 폴더의 쉼표로 구분된 목록"
 				}
 			},
 			frontmatter: {

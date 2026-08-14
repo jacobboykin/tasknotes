@@ -925,7 +925,7 @@ export const pt: TranslationTree = {
 				header: "Gerenciamento de Pastas",
 				excludedFolders: {
 					name: "Pastas excluídas",
-					description: "Lista de pastas separadas por vírgula para excluir da indexação de tarefas e sugestões de projetos"
+					description: "Lista de pastas separadas por vírgulas para excluir da indexação de tarefas e das sugestões de relações"
 				}
 			},
 			frontmatter: {

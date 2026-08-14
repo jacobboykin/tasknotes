@@ -923,7 +923,7 @@ export const fr: TranslationTree = {
 				header: "Gestion des dossiers",
 				excludedFolders: {
 					name: "Dossiers exclus",
-					description: "Liste séparée par des virgules des dossiers à exclure de l'indexation des tâches et des suggestions de projets"
+					description: "Liste séparée par des virgules des dossiers à exclure de l'indexation des tâches et des suggestions de relations"
 				}
 			},
 			frontmatter: {

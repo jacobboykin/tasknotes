@@ -923,7 +923,7 @@ export const ja: TranslationTree = {
 				header: "フォルダー管理",
 				excludedFolders: {
 					name: "除外フォルダー",
-					description: "タスクのインデックス作成とプロジェクト候補から除外するフォルダーのカンマ区切りリスト"
+					description: "タスクのインデックス作成と関連ノートの候補から除外するフォルダーのカンマ区切りリスト"
 				}
 			},
 			frontmatter: {

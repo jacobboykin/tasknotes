@@ -923,7 +923,7 @@ export const de: TranslationTree = {
 				header: "Ordnerverwaltung",
 				excludedFolders: {
 					name: "Ausgeschlossene Ordner",
-					description: "Kommagetrennte Liste von Ordnern, die von der Aufgabenindizierung und Projektvorschlägen ausgeschlossen werden"
+					description: "Kommagetrennte Liste von Ordnern, die von der Aufgabenindizierung und Beziehungsvorschlägen ausgeschlossen werden"
 				}
 			},
 			frontmatter: {

@@ -923,7 +923,7 @@ export const es: TranslationTree = {
 				header: "Gestión de carpetas",
 				excludedFolders: {
 					name: "Carpetas excluidas",
-					description: "Lista separada por comas de carpetas a excluir de la indexación de tareas y sugerencias de proyectos"
+					description: "Lista separada por comas de carpetas a excluir de la indexación de tareas y las sugerencias de relaciones"
 				}
 			},
 			frontmatter: {

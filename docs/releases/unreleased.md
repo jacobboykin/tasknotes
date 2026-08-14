@@ -31,16 +31,3 @@ When a change has user-facing documentation, include a canonical tasknotes.dev l
 ```
 
 -->
-
-## Added
-
-- Added Things-style planning with native Inbox, Today, Upcoming, Anytime, Someday, and Logbook views. See [Workflows](https://tasknotes.dev/workflows/) for daily and weekly planning.
-- Added searchable multi-select chips for tags, contexts, areas, goals, and related notes.
-- Added first-class project, area, and goal notes, project sections, review dates, reverse relationships, and a combined organization/review Base.
-- Added Quick Find plus dedicated Inbox capture, Today capture, planning, and entity-creation commands.
-- Added a typed relationship index, Project relationship editor, and inherited Area/Goal rollups. Ordinary backlinks remain mentions and no longer define TaskNotes relationships. See [Projects, Areas, Goals, and Relationships](https://tasknotes.dev/features/organization/).
-- Added Things-style recurring task templates with independent copies created on schedule, optional repeat-after-completion behavior, and start-before-deadline offsets. See [Recurring Tasks](https://tasknotes.dev/features/recurring-tasks/#occurrence-note-policies) for setup and behavior.
-
-## Changed
-
-- Project suggestions now prioritize first-class project notes, and task planning actions are available from both single-task and batch menus.

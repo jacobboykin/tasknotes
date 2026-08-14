@@ -923,7 +923,7 @@ export const zh: TranslationTree = {
 				header: "文件夹管理",
 				excludedFolders: {
 					name: "排除文件夹",
-					description: "从任务索引和项目建议中排除的文件夹的逗号分隔列表"
+					description: "要从任务索引和关系建议中排除的文件夹列表（以逗号分隔）"
 				}
 			},
 			frontmatter: {
